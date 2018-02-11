@@ -2,3 +2,4 @@
 *~
 *.swp
 DataImport/csv_import.py
+PaygapAPI/node_modules
