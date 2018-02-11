@@ -116,8 +116,8 @@ class Entity(ABC):
         '''Return a database connection for use in retrieval and storage'''
         if not Entity._conn:
             Entity._conn = psycopg2.connect(
-                "dbname=%s user=%s password=%s" % \
-                (passwords.DB_DB, passwords.DB_USER, passwords.DB_PASS))
+                "dbname=%s user=%s password=%s host=%s" % \
+                (passwords.DB_DB, passwords.DB_USER, passwords.DB_PASS, passwords.DB_HOST))
             #Set to the right schema
             cur = Entity._conn.cursor()
             query = "SET search_path TO '%s';" % (passwords.DB_SCHEMA)
@@ -181,6 +181,28 @@ class Company(Entity):
         digest = hashlib.sha256(hash_string.encode('utf-8')).hexdigest()
         self._data['co_hash'] = digest
         return digest
+    
+    def parse_sic(self, refresh=False):
+        '''Turns sic codes from csv into link table records'''
+        sic_list = self._data['co_sic_codes_csv'].split(",")
+        cosic_map = ['co_hash', 'sic_code']
+        #this is where we determine public / private
+        #assume private by default
+        self._data['co_public'] = False
+        #remove any empty strings from list
+        sic_list = [val for val in sic_list if len(val) > 0]
+        for sic in sic_list:
+            cln_sic = sic.strip()
+            #if this is a 1, this is actually a flag indicating public sector
+            if int(sic) == 1:
+                self._data['co_public'] = True
+            else:
+                sic_obj = CompanySic.from_row(dict(zip(cosic_map, [self._data[self.id_field()], cln_sic])))
+                try:
+                    sic_obj.save()
+                except Exception:
+                    print("Error saving company_sic record - may already exist")
+        self.save()
 
     def fetch_directors(self, refresh=False):
         '''Gets director info from Companies House. If refresh true, gets if already exist'''
@@ -214,6 +236,16 @@ class Sic(Entity):
     @classmethod
     def id_field(cls):
         return 'sic_code'
+
+class CompanySic(Entity):
+    '''Link between a company and SIC classification'''
+    @classmethod
+    def table(cls):
+        return 'company_sic'
+    
+    @classmethod
+    def id_field(cls):
+        raise RuntimeError("Cannot retrieve entity by id")
 
 class Gender(Entity):
     '''A genderize.io reponse record'''
@@ -344,8 +376,13 @@ print(errors)
 '''
 
 companies = Company.get_all()
+for co in companies:
+    print("Parsing sic for %s" % co._data['co_name'])
+    co.parse_sic()
+'''
 for company in companies:
     for director in company.directors:
         if not director._data['dir_gender']:
             print("Gendering %s of %s" % (director._data['dir_forenames'], company._data['co_name']))
             director.genderise()
+'''
