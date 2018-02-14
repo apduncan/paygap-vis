@@ -15,3 +15,11 @@ router.get('/:id', async (req, res) => {
   const { rows } = await db.query('SELECT * FROM paygap.company WHERE co_hash = $1', [id])
   res.send(rows[0])
 })
+router.get('/name/:name', async (req, res) => {
+  const { name } = req.params
+  var like_name = '%' + name.toUpperCase() + '%'
+  //Limitting rows returned as when at 2.5m may be a bit overwhelming
+  const { rows } = await db.query('SELECT co_name, co_hash FROM paygap.company WHERE UPPER(co_name) LIKE $1 LIMIT 20', [like_name])
+  console.log('serving results for ' + name)
+  res.send(rows)
+})

@@ -10,6 +10,9 @@
   "author": "Anthony Duncan",
   "license": "ISC",
   "devDependencies": {
+    "grunt": "^1.0.2",
+    "grunt-contrib-copy": "^1.0.0",
+    "grunt-contrib-uglify": "^3.3.0",
     "nodemon": "^1.14.12"
   },
   "dependencies": {

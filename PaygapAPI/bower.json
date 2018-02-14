@@ -1,0 +1,22 @@
+{
+  "name": "paygapapi",
+  "description": "REST API for returning Paygap Reporting information, and visualisations using this.",
+  "main": "index.js",
+  "authors": [
+    "Anthony Duncan"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "typeahead.js": "^0.11.1"
+  },
+  "directory": "./bower_components"
+}

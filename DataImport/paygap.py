@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import time
 from abc import ABC, abstractmethod
+from requests import HTTPError
 import chwrapper
 import psycopg2
 import passwords
@@ -129,7 +130,9 @@ class Company(Entity):
     '''A company represnted in pay gap data. Contains methods to find directors'''
     HASH_FIELDS = ['co_number', 'co_name', 'co_sic_codes_csv']
     _chclient = chwrapper.Search(access_token=passwords.CH_KEY)
-    _mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPayPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleMedianBonusPayPercent', 'co_female_median_bonus': 'FemaleMedianBonusPayPercent', 'co_male_lower_band': 'MaleLowerPayBand', 'co_female_lower_band': 'FemaleLowerPayBand', 'co_male_middle_band': 'MaleMiddlePayBand', 'co_female_middle_band': 'FemaleMiddlePayBand', 'co_male_upper_band': 'MaleUpperPayBand', 'co_female_upper_band': 'FemaleUpperPayBand', 'co_male_upper_quartile': 'MaleUpperQuartilePayBand', 'co_female_uppdate_quartile': 'FemaleUpperQuartilePayBand', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
+    #mapping changed on 13-02-2018, csv changed field names
+    #_mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPayPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleMedianBonusPayPercent', 'co_female_median_bonus': 'FemaleMedianBonusPayPercent', 'co_male_lower_band': 'MaleLowerPayBand', 'co_female_lower_band': 'FemaleLowerPayBand', 'co_male_middle_band': 'MaleMiddlePayBand', 'co_female_middle_band': 'FemaleMiddlePayBand', 'co_male_upper_band': 'MaleUpperPayBand', 'co_female_upper_band': 'FemaleUpperPayBand', 'co_male_upper_quartile': 'MaleUpperQuartilePayBand', 'co_female_uppdate_quartile': 'FemaleUpperQuartilePayBand', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
+    _mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleBonusPercent', 'co_female_median_bonus': 'FemaleBonusPercent', 'co_male_lower_band': 'MaleLowerQuartile', 'co_female_lower_band': 'FemaleLowerQuartile', 'co_male_middle_band': 'MaleLowerMiddleQuartile', 'co_female_middle_band': 'FemaleLowerMiddleQuartile', 'co_male_upper_band': 'MaleUpperMiddleQuartile', 'co_female_upper_band': 'FemaleUpperMiddleQuartile', 'co_male_upper_quartile': 'MaleTopQuartile', 'co_female_uppdate_quartile': 'FemaleTopQuartile', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
 
     def __init__(self):
         super().__init__()
@@ -221,6 +224,9 @@ class Company(Entity):
                     #this is a director, create and add to list
                     results.append(Director.from_json(person, self._data['co_hash']))
             self.directors = results
+            return True
+        else:
+            return False
 
     def save(self):
         super().save()
@@ -323,8 +329,14 @@ class Genderiser:
                 row = {'g_name' : response['name'], 'g_gender' : response['gender'], 'g_prob' : response['probability'], 'g_count' : response['count']}
                 gender = Gender.from_row(row)
                 gender.save()
+                self.names[row['g_name']] = gender
                 return gender
             else:
+                response = response[0]
+                row = {'g_name' : response['name'], 'g_gender' : 'U', 'g_prob' : None, 'g_count' : None}
+                gender = Gender.from_row(row)
+                gender.save()
+                self.names[row['g_name']] = gender
                 return None
 
 class Director(Entity):
@@ -358,7 +370,28 @@ class Director(Entity):
         '''Find a gender for this director'''
         self.genderiser.get_gender(self)
 
+def get_all_directors():
+    #fetch all companies
+    cos = Company.get_all()
+    invalid = []
+    for co in cos:
+        wait = 0
+        try:
+            print("Fetching %s" % co._data['co_name'])
+            if co.fetch_directors():
+                co.save()
+                wait = 0.3
+        except HTTPError:
+            invalid.append("Invalid co number: %s::%s" % (co._data['co_name'], co._data['co_hash']))
+        time.sleep(wait)
+    print("Errors fetching:")
+    print(invalid)
 
+def gender_all_directors():
+    directors = Director.get_all()
+    for director in directors:
+        print(director._data['dir_forenames'])
+        director.genderise()
 
 '''
 for ONE in Company.get_all():
@@ -375,10 +408,9 @@ print("Errors fetching the below companies")
 print(errors)
 '''
 
-companies = Company.get_all()
-for co in companies:
-    print("Parsing sic for %s" % co._data['co_name'])
-    co.parse_sic()
+if __name__ == "__main__":
+    gender_all_directors()
+
 '''
 for company in companies:
     for director in company.directors:
