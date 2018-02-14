@@ -76,4 +76,14 @@ $(document).ready(function () {
     .fail((one, two, three) => {
         console.log('OH NO')
     })
+    
+    var hi = new IndustryDirectorPercentage('#class_test', {
+        url: {
+            sic_industry: 'A'
+        },
+        min: 0,
+        max: 100,
+        bins: 20
+    })
+    hi.fetchAndDraw()
 })
