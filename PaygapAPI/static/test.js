@@ -20,6 +20,9 @@ $(document).ready(function () {
                     },
                     yAxis: {
                         visible: false
+                    },
+                    exporting: {
+                        enabled: false
                     }
                 },
                 min: 0,

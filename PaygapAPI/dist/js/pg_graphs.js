@@ -181,7 +181,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
                 },
                 xAxis: {
                     labels: {
-                        formatter: undefined
+                        format: '{value}%'
                     }
                 },
                 series: [{
@@ -192,6 +192,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
         })
         //merge in customs
         this._set_params(this._params, params)
+        //cannot get formatter to work properly, have to set manually after
     }
 
     _transform_data() {
