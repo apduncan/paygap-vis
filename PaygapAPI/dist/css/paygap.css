@@ -1,0 +1,10 @@
+.flexcontainer {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-content: flex-start;
+}
+div.small-card {
+    width: 15vw;
+    margin: 0.5ex;
+}

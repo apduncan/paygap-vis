@@ -13,9 +13,17 @@ class AjaxGraph {
         return this._data
     }
 
+    set data(data) {
+        this._data = data
+        this._draw()
+    }
+
     set params(params) {
-        this.params = params
-        this.draw()
+        this._params = params
+    }
+
+    get params() {
+        return this._params
     }
 
     get contextMessage() {
@@ -74,9 +82,25 @@ class EvenHistogram extends AjaxGraph {
                 return this.value
             }
         }
+        //set legend default
+        if(!this._params.hasOwnProperty('legend')) {
+            this._params.legend = true
+        }
+        //set y-axis default
+        if(!this._params.hasOwnProperty('y_title')) {
+            this.params.y_title = ''
+        }
+        //set default y_labels
+        if(!this._params.hasOwnProperty('y_labels')) {
+            this._params.y_labels = true
+        }
         $(this._id).highcharts({
             chart: {
-                type: 'column'
+                type: 'column',
+                height: this._params.height
+            },
+            legend: {
+                enabled: this._params.legend
             },
             title: {
                 text: this._params.title
@@ -90,6 +114,9 @@ class EvenHistogram extends AjaxGraph {
             yAxis: {
                 title: {
                     text: this._params.y_title
+                },
+                labels: {
+                    enabled: this._params.y_labels
                 }
             },
             series: [{
@@ -126,6 +153,9 @@ class EvenHistogram extends AjaxGraph {
         for(var point in data) {
             var float_point = parseFloat(data[point])
             var bin = Math.floor(float_point/interval)
+            if(bin > (bins-1)) {
+                bin = bins-1
+            }
             counts[bin] = counts[bin]+1
         }
         //generate labels
@@ -164,5 +194,14 @@ class IndustryDirectorPercentage extends EvenHistogram {
             cleaned.push(parseFloat(element))
         })
         return cleaned
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
     }
 }
