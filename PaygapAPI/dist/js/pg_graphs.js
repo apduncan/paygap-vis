@@ -62,6 +62,27 @@ class AjaxGraph {
     _transform_data() {
         throw 'Class must implement transform data to turn data into usable format'
     }
+
+    _set_params(highcharts, params) {
+        //highcharts - the highcharts setting object
+        //params - object containing settings to add or replace, in same format as highcharts
+        //when a param is an object, called recursively, with the matching highcharts property 
+        Object.keys(params).forEach(element => {
+            //determine if this is an object, and needs to be called recursively
+            var value = params[element]
+            if(value instanceof Object) {
+                //create highcharts object if it does not exist
+                if(typeof(highcharts[element]) === 'undefined') {
+                    highcharts[element] = new Object()
+                }
+                //call recursively
+                this._set_params(highcharts[element], value)
+            } else {
+                //set value in highcharts
+                highcharts[element] = value
+            }
+        })
+    }
 }
 
 //CONCRETE IMPLEMENTATIONS
@@ -77,57 +98,24 @@ class EvenHistogram extends AjaxGraph {
         //take settings from params
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
         //check if there's formatter object, add default if not
-        if(!this._params.hasOwnProperty('formatter')) {
-            this._params.formatter = function() {
-                return this.value
-            }
-        }
-        //set legend default
-        if(!this._params.hasOwnProperty('legend')) {
-            this._params.legend = true
-        }
-        //set y-axis default
-        if(!this._params.hasOwnProperty('y_title')) {
-            this.params.y_title = ''
-        }
-        //set default y_labels
-        if(!this._params.hasOwnProperty('y_labels')) {
-            this._params.y_labels = true
-        }
-        $(this._id).highcharts({
+        var chart =  {
             chart: {
                 type: 'column',
-                height: this._params.height
-            },
-            legend: {
-                enabled: this._params.legend
-            },
-            title: {
-                text: this._params.title
             },
             xAxis: {
                 gridLineWidth: 1,
-                labels: {
-                    formatter: this._params.formatter
-                }
-            },
-            yAxis: {
-                title: {
-                    text: this._params.y_title
-                },
-                labels: {
-                    enabled: this._params.y_labels
-                }
             },
             series: [{
-                name: this._params.series_title,
+                name: 'defaultname',
                 type: 'column',
                 data: binned.data,
                 pointPadding: 0,
                 groupPadding: 0,
                 pointPlacement: 'between'
             }]
-        })
+        }
+        this._set_params(chart, this._params.highcharts)
+        $(this._id).highcharts(chart)
     }
 
     _even_bins(data, bins, min, max) {
@@ -177,14 +165,33 @@ class EvenHistogram extends AjaxGraph {
 class IndustryDirectorPercentage extends EvenHistogram {
     constructor(id, params) {
         const URL = './industry/%SIC_INDUSTRY%/director_ratio'
-        params.y_title = 'Count of Companies'
-        params.series_title = 'Female Directors (%)'
-        params.bins = 20
-        params.title = `Percentage female directors of companies in ${params.url.sic_industry}`
-        params.formatter = function() {
-            return this.value + '%'
-        }
-        super(id, URL, params)
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Percentage female directors of companies in ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        formatter: undefined
+                    }
+                },
+                series: [{
+                    name: '% Female Directors'
+                }],
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
     }
 
     _transform_data() {

@@ -11,17 +11,22 @@ $(document).ready(function () {
                 url: {
                     sic_industry: element
                 },
+                highcharts: {
+                    title: {
+                        text: code
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    yAxis: {
+                        visible: false
+                    }
+                },
                 min: 0,
                 max: 100,
                 bins: 20,
                 height: '100%'
             })
-            var params = graph.params
-            params.title = `Industry ${element}`
-            params.legend = false
-            params.y_title = ''
-            params.y_labels = false
-            graph.params = params
             graph.data = data[element]
         })
     })
