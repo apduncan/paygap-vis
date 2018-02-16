@@ -5,15 +5,15 @@ $(document).ready(function () {
             //create a container for this industry
             var code = element.split(" ")[0]
             var id = `industry_ratio_${code}`
-            var container = `<div id="${id}" class="small-card"></div>`        
+            var container = `<div class="small-card"><div class='little-title'>${data[element]['sic_section_desc']}</div><div id="${id}"></div></div>`        
             $('#histo-test').append(container)
-            var graph = new IndustryDirectorPercentage('#'+id, {
+            var graph = new IndustryDirectorPercentage(id, {
                 url: {
                     sic_industry: element
                 },
                 highcharts: {
                     title: {
-                        text: code
+                        text: ''
                     },
                     legend: {
                         enabled: false
@@ -30,7 +30,7 @@ $(document).ready(function () {
                 bins: 20,
                 height: '100%'
             })
-            graph.data = data[element]
+            graph.data = data[element]['data']
         })
     })
 })

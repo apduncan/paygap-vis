@@ -112,10 +112,15 @@ class EvenHistogram extends AjaxGraph {
                 pointPadding: 0,
                 groupPadding: 0,
                 pointPlacement: 'between'
-            }]
+            }],
+            tooltip: {
+                formatter: function() {
+                    return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+binned.interval}</strong>% female directors`
+                }
+            }
         }
         this._set_params(chart, this._params.highcharts)
-        $(this._id).highcharts(chart)
+        var chart_obj = Highcharts.chart(this._id, chart)
     }
 
     _even_bins(data, bins, min, max) {

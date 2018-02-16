@@ -8,3 +8,8 @@ div.small-card {
     width: 15vw;
     margin: 0.5ex;
 }
+div.little-title {
+    height: 5ex;
+    overflow: hidden;
+    font-size: smaller;
+}
