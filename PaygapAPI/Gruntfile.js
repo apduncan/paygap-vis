@@ -32,6 +32,12 @@ module.exports = function (grunt) {
 	       cwd: '<%= config.app %>/localforage/dist',
 	       src: 'localforage.min.js',
 	       dest: '<%= config.dist %>/js'
+       },
+      {
+	       expand: true,
+	       cwd: '<%= config.app %>/undo-manager/lib',
+	       src: 'undomanager.js',
+	       dest: '<%= config.dist %>/js'
        }]
       }
     },

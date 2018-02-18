@@ -119,20 +119,22 @@ class EvenHistogram extends AjaxGraph {
         //take settings from params
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
         //calculate a mean
-        console.log(data)
-        const mean = data.reduce(function(a, b) {return a + b}) / data.length
+        var plotLines = []
+        if(data.length > 0) {
+           var mean = data.reduce(function(a, b) {return a + b}) / data.length
+           plotLines.push({
+               value: mean,
+               width: 1,
+               color: 'black'
+           })
+        }
         var chart =  {
             chart: {
                 type: 'column',
             },
             xAxis: {
                 gridLineWidth: 1,
-                plotLines: [{
-                    value: mean,
-                    width: 2,
-                    color: 'black'
-                }]
-            },
+                plotLines: plotLines           },
             series: [{
                 name: 'defaultname',
                 type: 'column',
