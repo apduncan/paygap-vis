@@ -1,5 +1,15 @@
 .flexcontainer {
     display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    flex-direction: row;
+    align-content: flex-start;
+}
+div.pin-bar {
+    width: 25%;
+    background: rgb(179, 121, 238);
+    float: left;
+    display: flex;
     flex-wrap: wrap;
     flex-direction: row;
     align-content: flex-start;

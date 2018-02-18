@@ -3,22 +3,22 @@ module.exports = {
         industry: {
             field: 'sic_industry',
             name: 'ONS Industry Group',
-            drillDown: 'section',
-            drillUp: null,
+            drillDown: 'division',
+            drillUp: 'section',
             urlName: 'industry'
         }, 
         section: {
             field: 'sic_section',
             name: 'Section',
-            drillDown: 'division',
-            drillUp: 'industry',
+            drillDown: 'industry',
+            drillUp: null,
             urlName: 'section'
         },
         division: {
             field: 'sic_division',
             name: 'Division',
             drillDown: 'group',
-            drillUp: 'section',
+            drillUp: 'industry',
             urlName: 'division'
         },
         group: {

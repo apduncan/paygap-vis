@@ -1,5 +1,8 @@
 class IndustryExplorer {
-    constructor(id) {
+    constructor(id, startLevel) {
+        if(typeof(startLevel) === 'undefined' || startLevel === null) {
+            startLevel = 'section'
+        }
         //id is the id of the DOM element the explorer should be placed in
         this._id = id
         this._undoManager = new UndoManager()
@@ -8,22 +11,22 @@ class IndustryExplorer {
             industry: {
                 field: 'sic_industry',
                 name: 'ONS Industry Group',
-                drillDown: 'section',
-                drillUp: null,
+                drillDown: 'division',
+                drillUp: 'section',
                 urlName: 'industry'
             }, 
             section: {
                 field: 'sic_section',
                 name: 'Section',
-                drillDown: 'division',
-                drillUp: 'industry',
+                drillDown: 'industry',
+                drillUp: null,
                 urlName: 'section'
             },
             division: {
                 field: 'sic_division',
                 name: 'Division',
                 drillDown: 'group',
-                drillUp: 'section',
+                drillUp: 'industry',
                 urlName: 'division'
             },
             group: {
@@ -42,9 +45,9 @@ class IndustryExplorer {
             }
         }
         this._currentLevel = {
-            level: 'industry',
+            level: startLevel,
             id: null,
-            sic: this._sicLevels['industry']
+            sic: this._sicLevels[startLevel]
         }
         //create sections which will be used for navigation, and place in object
         const title = $(`<div class="section-title"></div>`).appendTo(id)
@@ -84,8 +87,40 @@ class IndustryExplorer {
             up: upButton,
             breadcrumbs: breadcrumbs
         }
-        this._drawLevel('industry')
+        this._drawLevel(startLevel)
         this._buttonCheck()
+    }
+    
+    _pinGraph(id) {
+        //clones a graph and adds to the right side div
+        //create a div if needed
+        var pinBar
+        if(!this._elements.hasOwnProperty('pinBar')) {
+            $(this._elements.graphs).width('74%')
+            $(this._elements.graphs).css('float', 'left')
+            pinBar = $(`<div class="pin-bar"></div>`).appendTo(this._id)
+            this._elements.pinBar = pinBar
+        } else {
+            pinBar = this._elements.pinBar
+        }
+
+        //clone the graph into the pin bar
+        const pinnedGraph = $(id).clone(true).appendTo(pinBar)
+        //change the pin handler
+        var link = $(pinnedGraph).find("a").first()
+        $(link).off('click') 
+        const self = this
+        $(link).click(function() {
+            $(pinnedGraph).remove()
+            //check if pinBar should be removed
+            if($(pinBar).find("a").length < 1) {
+                $(pinBar).remove()
+                delete self._elements.pinBar
+                $(self._elements.graphs).width('100%')
+                $(self._elements.graphs).css('float', null)
+            }
+            return false
+        })
     }
     
     _buttonCheck() {
@@ -101,7 +136,7 @@ class IndustryExplorer {
             $(this._elements.redo).prop('disabled', true)
         }
 
-        if(this._currentLevel.level === 'industry' && (this._currentLevel.id === null || typeof(this._currentLevel.id) === 'undefined')) {
+        if(this._currentLevel.level === 'section' && (this._currentLevel.id === null || typeof(this._currentLevel.id) === 'undefined')) {
             $(this._elements.up).prop('disabled', true)
         } else {
             $(this._elements.up).prop('disabled', false)
@@ -149,10 +184,10 @@ class IndustryExplorer {
         //empty existing breadcrumbs
         $(this._elements.breadcrumbs).empty()
         //write top level link
-        const root = $(`<a href="" class="crumb">All ONS Groups</a>`).appendTo(this._elements.breadcrumbs)
+        const root = $(`<a href="" class="crumb">All Sections</a>`).appendTo(this._elements.breadcrumbs)
         var self = this
         $(root).click(function() {
-            self.changeLevel('industry', null)
+            self.changeLevel('section', null)
             return false
         })
         //iterate backwards and write links
@@ -196,10 +231,15 @@ class IndustryExplorer {
                 var id = `industry_director_${item}`
                 //make a div for this
                 var div = `<div id="contain_${id}" class="small-card card ${obj.description.level.drillDown !== null ? 'interactable-card interactable' : ''}">
-                <div class="title" id="link_${id}">${obj.description.name}</div>
+                <div class="title" id="link_${id}">${obj.description.name} <a href="" id="pin_${id}">Pin</a></div>
                 <div id="${id}"></div>
                 </div>`
                 $(self._elements.graphs).append(div)
+                $(`#pin_${id}`).data('pinId', `#contain_${id}`)
+                $(`#pin_${id}`).click(function() {
+                    self._pinGraph($(this).data('pinId'))
+                    return false
+                })
                 //assocate level data, and click handler which uses it
                 if(obj.description.level.drillDown !== null) {
                     var linkId = `#link_${id}`
