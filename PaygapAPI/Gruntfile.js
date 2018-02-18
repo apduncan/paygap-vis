@@ -26,6 +26,12 @@ module.exports = function (grunt) {
          cwd: '<%= config.app %>/typeahead.js/dist',
          src: 'typeahead.bundle.min.js',
          dest: '<%= config.dist %>/js'
+       },
+       {
+	       expand: true,
+	       cwd: '<%= config.app %>/localforage/dist',
+	       src: 'localforage.min.js',
+	       dest: '<%= config.dist %>/js'
        }]
       }
     },

@@ -33,25 +33,46 @@ class AjaxGraph {
     fetchAndDraw() {
         //build request url
         var parsed_url = this._url
+        //check if this is a key in localstorage, get from there if it is
         var params = this._params
         Object.keys(params.url).forEach(element => {
             var find = '%'+element.toUpperCase()+'%'
             var replace = params.url[element]
             parsed_url = parsed_url.replace(find, replace)
         });
+        //check if this data exists in localstoage already
+        var needAjax = true
+        var self = this
+        localforage.getItem(parsed_url).then(function(storedData) {
+            if(storedData !== null) {
+                self._data = storedData
+                needAjax = false
+                self._draw()
+            } else {
+                //get by ajax
+                $(self._id).text('Fetching ... placeholder')
+                $.ajax({
+                    url: parsed_url
+                })
+                .done((data) => {
+                    self._data = data
+                    //store data
+                    localforage.setItem(parsed_url, data)
+                    self._draw()
+                })
+                .fail((jxhr, status) => {
+                    //set target DOM element to error
+                    $(self._id).text('Failed ... sorry')
+                })
+            }
+        }).catch(function(err) {
+           //does not exist in store, get from sever 
+           console.log("Error retrieving from localstorage " + parsed_url + err)
+        })
+        if(needAjax) {
         //set target DOM element to placeholder
-        $(this._id).text('Fetching ... placeholder')
-        $.ajax({
-            url: parsed_url
-        })
-        .done((data) => {
-            this._data = data
-            this._draw()
-        })
-        .fail((jxhr, status) => {
-            //set target DOM element to error
-            $(this._id).text('Failed ... sorry')
-        })
+            
+        }
     }
 
     _draw() {
@@ -97,13 +118,20 @@ class EvenHistogram extends AjaxGraph {
         //bin the data
         //take settings from params
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
-        //check if there's formatter object, add default if not
+        //calculate a mean
+        console.log(data)
+        const mean = data.reduce(function(a, b) {return a + b}) / data.length
         var chart =  {
             chart: {
                 type: 'column',
             },
             xAxis: {
                 gridLineWidth: 1,
+                plotLines: [{
+                    value: mean,
+                    width: 2,
+                    color: 'black'
+                }]
             },
             series: [{
                 name: 'defaultname',
@@ -120,7 +148,8 @@ class EvenHistogram extends AjaxGraph {
             }
         }
         this._set_params(chart, this._params.highcharts)
-        var chart_obj = Highcharts.chart(this._id, chart)
+        // var chart_obj = Highcharts.chart(this._id, chart)
+        $(this._id).highcharts(chart)
     }
 
     _even_bins(data, bins, min, max) {
@@ -169,7 +198,7 @@ class EvenHistogram extends AjaxGraph {
 
 class IndustryDirectorPercentage extends EvenHistogram {
     constructor(id, params) {
-        const URL = './industry/%SIC_INDUSTRY%/director_ratio'
+        const URL = './industry/%SICLEVEL%/%ID%?directorRatio=true'
         var pass = { params }
         super(id, URL, pass)
         //merge in defaults
@@ -193,7 +222,9 @@ class IndustryDirectorPercentage extends EvenHistogram {
                     name: '% Female Directors'
                 }],
             },
-            bins: 20
+            bins: 20,
+            min: 0,
+            max: 100
         })
         //merge in customs
         this._set_params(this._params, params)
@@ -203,7 +234,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
     _transform_data() {
         var data = this._data
         var cleaned = new Array()
-        data.data.forEach((element) => {
+        data.directorRatio.forEach((element) => {
             cleaned.push(parseFloat(element))
         })
         return cleaned

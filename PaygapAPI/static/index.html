@@ -6,16 +6,20 @@
         <script type="text/javascript" src="https://code.highcharts.com/highcharts.js"></script>
         <script type="text/javascript" src="https://code.highcharts.com/highcharts-more.js"></script>
         <script type="text/javascript" src="https://code.highcharts.com/modules/exporting.js"></script>
+        <script src="dist/js/localforage.min.js"></script>
         <script src="dist/js/autofills.js"></script>
-        <script src="test.js"></script>
         <script src="dist/js/pg_graphs.js"></script>
+        <script src="test.js"></script>
         <link href="dist/css/paygap.css" rel="StyleSheet" type="text/css" media="all">
     </head>
     <body>
         <h1>Typeahead Test</h1>
         <input id='typebox' class="typeahead" type="text" placeholder="Company Name">
         <h3>Percentage of Female Directors by Section</h3>
-        <div id="histo-test" class="flexcontainer">
+        <div id="histo-test" class="small-card">
+        </div>
+        <div id='mini-charts' class='flexcontainer'>
+
         </div>
     </body>
 </html>
