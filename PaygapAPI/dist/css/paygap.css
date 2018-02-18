@@ -12,10 +12,15 @@ div.pin-bar {
     display: flex;
     flex-wrap: wrap;
     flex-direction: row;
-    align-content: flex-start;
+    justify-content: center;
+}
+div.small-card .title div.pin {
+    font-size: small;
+    float: right;
+    margin: 0.2ex;
 }
 div.small-card {
-    width: 20vw;
+    width: 22vw;
     margin: 1ex;
 }
 div.card {

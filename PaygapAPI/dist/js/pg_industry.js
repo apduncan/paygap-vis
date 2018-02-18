@@ -107,13 +107,13 @@ class IndustryExplorer {
         //clone the graph into the pin bar
         const pinnedGraph = $(id).clone(true).appendTo(pinBar)
         //change the pin handler
-        var link = $(pinnedGraph).find("a").first()
+        var link = $(pinnedGraph).find(".pin").first()
         $(link).off('click') 
         const self = this
         $(link).click(function() {
             $(pinnedGraph).remove()
             //check if pinBar should be removed
-            if($(pinBar).find("a").length < 1) {
+            if($(pinBar).find(".pin").length < 1) {
                 $(pinBar).remove()
                 delete self._elements.pinBar
                 $(self._elements.graphs).width('100%')
@@ -231,7 +231,7 @@ class IndustryExplorer {
                 var id = `industry_director_${item}`
                 //make a div for this
                 var div = `<div id="contain_${id}" class="small-card card ${obj.description.level.drillDown !== null ? 'interactable-card interactable' : ''}">
-                <div class="title" id="link_${id}">${obj.description.name} <a href="" id="pin_${id}">Pin</a></div>
+                <div class="title" id="link_${id}"><div id="pin_${id}" class="pin interactable"><img src="./img/pin.png"></div>${obj.description.name}</div>
                 <div id="${id}"></div>
                 </div>`
                 $(self._elements.graphs).append(div)
