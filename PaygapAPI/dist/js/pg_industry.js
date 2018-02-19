@@ -92,6 +92,17 @@ class IndustryExplorer {
             }
             self._buttonCheck()
         })
+        //iteratively construct radio buttons for each measure available
+        const measureSelect = $(`<span class="radio-toggle explorer-left-space" id="measure-select"></span>`).appendTo(buttons)
+        Object.keys(this._measures).forEach(function(element) {
+            const thisMeasure = self._measures[element]
+            console.log(`Element: ${element}, Measure ${thisMeasure}`)
+            console.log(measureSelect)
+            const radioElement = $(`<input type="radio" name="measure-select" id="${element}" value="${thisMeasure.url}" ${element === self._currentMeasure.url ? 'checked' : ''}><label for="${element}" class="button-height"><span class="radio-label">${thisMeasure.name}</span></label>`).appendTo(measureSelect)
+            $(radioElement).click(function() {
+                self.changeMeasure(element)
+            })
+        })
         const graphs = $('<div class="flexcontainer"></div>').appendTo(id)
         this._elements = {
             title: title,
@@ -158,6 +169,15 @@ class IndustryExplorer {
         }
     }
 
+    changeMeasure(measure) {
+        //draw the current level, but using a new measure
+        if(measure !== this._currentMeasure.url) {
+            const newMeasure = this._measures[measure]
+            this._currentMeasure = newMeasure
+            this._drawLevel(this._currentLevel.level, this._currentLevel.id)
+        }
+    }
+
     changeLevel(level, id) {
         this._drawLevel(level, id)
         const self = this
@@ -216,6 +236,86 @@ class IndustryExplorer {
         }
     }
 
+    _drawDirectorRatio(item, index, id) {
+       var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryDirectorPercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            }
+        })
+        chart.fetchAndDraw()
+    }
+
+    _drawMeanGap(item, index, id) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryMeanPercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            }
+        })
+        chart.fetchAndDraw()
+    }
+
     _drawLevel(level, id) {
         //compose url to request items at the required level
         var url
@@ -255,7 +355,7 @@ class IndustryExplorer {
                     self._pinGraph($(this).data('pinId'))
                     return false
                 })
-                //assocate level data, and click handler which uses it
+                //associate level data, and click handler which uses it
                 if(obj.description.level.drillDown !== null) {
                     var linkId = `#link_${id}`
                     $(`#contain_${id}`).data('drill', obj.description)
@@ -265,43 +365,7 @@ class IndustryExplorer {
                     })
                 }
                 //create a chart for this
-                var meanLabel = [{
-                    label: {
-                        text: 'Mean'
-                    }
-                }]
-                if(item > 0) {
-                    meanLabel[0].label.text = ''
-                }
-                var chart = new IndustryDirectorPercentage('#'+id, {
-                    url: {
-                        sicLevel: obj.description.level.urlName,
-                        id: obj.description.id
-                    },
-                    highcharts: {
-                        title: {
-                            text: ''
-                        },
-                        legend: {
-                            enabled: false
-                        },
-                        chart: {
-                            height: '50%'
-                        },
-                        exporting: {
-                            enabled: false
-                        },
-                        yAxis: {
-                            labels: {
-                                enabled: true
-                            }
-                        },
-                        xAxis: {
-                            plotLines: meanLabel
-                        }
-                    }
-                })
-                chart.fetchAndDraw()
+                self._currentMeasure.draw(obj, item, id)
             }  
         })
         .fail(function(one, two, three) {

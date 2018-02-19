@@ -50,7 +50,7 @@ class AjaxGraph {
                 self._draw()
             } else {
                 //get by ajax
-                $(self._id).text('Fetching ... placeholder')
+                $(self._id).append('<div class="loader"><div><div></div>')
                 $.ajax({
                     url: parsed_url
                 })
@@ -153,7 +153,9 @@ class EvenHistogram extends AjaxGraph {
             },
             xAxis: {
                 gridLineWidth: 1,
-                plotLines: plotLines
+                plotLines: plotLines,
+                min: binned.min,
+                max: binned.max
             },
             series: [{
                 name: 'defaultname',
@@ -162,12 +164,7 @@ class EvenHistogram extends AjaxGraph {
                 pointPadding: 0,
                 groupPadding: 0,
                 pointPlacement: 'between'
-            }],
-            tooltip: {
-                formatter: function() {
-                    return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+binned.interval}</strong>% female directors`
-                }
-            }
+            }]
         }
         this._set_params(chart, this._params.highcharts)
         // var chart_obj = Highcharts.chart(this._id, chart)
@@ -193,10 +190,10 @@ class EvenHistogram extends AjaxGraph {
         }
         //bin data
         var counts = Array.apply(null, Array(bins)).map(Number.prototype.valueOf,0)
-        const interval = (max-min)/bins
+        const interval = (max+(-min))/bins
         for(var point in data) {
             var float_point = parseFloat(data[point])
-            var bin = Math.floor(float_point/interval)
+            var bin = Math.floor((float_point-min)/interval)
             if(bin > (bins-1)) {
                 bin = bins-1
             }
@@ -206,14 +203,16 @@ class EvenHistogram extends AjaxGraph {
         var labels = new Array()
         for(var i = 0; i < bins; i++) {
             var element = [
-                parseFloat((i*interval).toFixed(2)),
+                parseFloat(parseFloat(min+(i*interval)).toFixed(2)),
                 counts[i]
             ]
             labels.push(element)
         }
         return {
             data: labels,
-            interval: interval
+            interval: interval,
+            min: min,
+            max: max
         }
     }
 }
@@ -242,7 +241,12 @@ class IndustryDirectorPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Female Directors'
-                }],
+                }]
+                // tooltip: {
+                //     formatter: function() {
+                //         return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+binned.interval}</strong>% female directors`
+                //     }
+                // }
             },
             bins: 20,
             min: 0,
@@ -296,19 +300,30 @@ class IndustryMeanPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Mean Pay Gap'
-                }],
+                }]
+                // tooltip: {
+                //     formatter: function() {
+                //         return `<strong>${this.y}</strong> companies have a mean gap between <strong>${this.x}%</strong> - <strong>${this.x+binned.interval}</strong>%`
+                //     }
+                // }
             },
-            bins: 20,
+            bins: 30,
         })
         //merge in customs
         this._set_params(this._params, params)
-        //cannot get formatter to work properly, have to set manually after
+    }
+
+    _draw() {
+        //add min/max to params
+        this._params['min'] = parseFloat(this._data.meanGap['min'])
+        this._params['max'] = parseFloat(this._data.meanGap['max'])
+        super._draw()
     }
 
     _transform_data() {
         var data = this._data
         var cleaned = new Array()
-        data.directorRatio.forEach((element) => {
+        data.meanGap.points.forEach((element) => {
             cleaned.push(parseFloat(element))
         })
         return cleaned

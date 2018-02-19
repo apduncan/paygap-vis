@@ -39,7 +39,7 @@ async function directorRatio(level, id, response) {
 
 async function meanGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT co_diff_hourly_mean FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN sic \
+	var query = `SELECT DISTINCT co_hash, co_diff_hourly_mean FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
 	WHERE ${field} = $1`
 	const { rows } = await db.query(query, [id])
 	var points_only = new Array()
@@ -47,7 +47,15 @@ async function meanGap(level, id, response) {
 		var point = rows[row]['co_diff_hourly_mean']
 		points_only.push(parseFloat(point))
 	}
-	response['meanGap'] = points_only
+  //also want to find the global min and max to help histogram plotting
+  const minMax = await db.query('SELECT MIN(co_diff_hourly_mean) AS min, MAX(co_diff_hourly_mean) FROM paygap.company', [])
+  console.log(minMax.rows)
+  response['meanGap'] = {
+    points: points_only,
+    min: parseFloat(minMax.rows[0]['min']),
+    max: parseFloat(minMax.rows[0]['max'])
+  }
+  console.log(response)
 	return response
 }
 

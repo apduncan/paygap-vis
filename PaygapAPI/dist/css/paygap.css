@@ -17,9 +17,9 @@ a:visited {
     color: blue;
 }
 a:hover {
-    text-decoration: underline green;
     color: green;
 }
+/*INPUT TYPE STYLES*/
 button {
     background: rgb(123, 73, 173);
     border: rgb(123, 73, 173) thin solid;
@@ -31,6 +31,76 @@ button:disabled {
     background: lightgray;
     border: lightgray thin solid;
 }
+/*RADIO GROUPS TO LOOK LIKE TOGGLE BUTTONS*/
+.radio-toggle {
+    overflow: hidden;
+}
+.radio-toggle input {
+    /*Hides the standard radio circle*/
+    /*visibility: hidden;*/
+    position: absolute !important;
+    clip: rect(0, 0, 0, 0);
+    height: 1px;
+    width: 1px;
+    border: 0;
+    overflow: hidden;
+    margin: 0;
+}
+.radio-toggle label {
+    display: inline-block;
+    padding-left: 1ex;
+    padding-right: 1ex;
+    vertical-align: top;
+    text-align: left;
+    background: white;
+    color: rgb(123, 73, 173);
+    border: rgb(123, 73, 173) thin solid;
+}
+.radio-toggle label:hover {
+    background: rgb(179, 121, 238);
+}
+.radio-toggle input:checked + label {
+    background: rgb(123, 73, 173);
+    color: white;
+}
+.radio-toggle label span:before {
+    content: '';
+    display: inline-block;
+    vertical-align: middle;
+    height: 100%;
+}
+.radio-toggle label span:before {
+    vertical-align: middle;
+    display: inline-block;
+}
+
+/*LOADING SPINNER*/
+div.loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+div.loader > div {
+    border: 16px solid lightgray;
+    border-radius: 50%;
+    border-top: 16px solid rgb(123, 73, 173);
+    width: 40px;
+    height: 40px;
+    -webkit-animation: spin 2s linear infinite; /* Safari */
+    animation: spin 2s linear infinite;
+    margin: 1em;
+  }
+  
+  /* Safari */
+  @-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 
 /*PIN STYLES*/
 div.pin-bar {
@@ -69,7 +139,7 @@ div.small-card .title {
     height: 5ex;
     font-size: medium;
     font-family: Georgia, 'Times New Roman', Times, serif;
-    overflow: hidden;
+    overflow-y: scroll;
     padding: 0.5em;
 }
 div.section-title {
@@ -77,6 +147,12 @@ div.section-title {
     font-size: x-large; 
     letter-spacing: 0.2ex;
 }
-div.explorer-padding {
+.button-height {
+    height: 32px;
+}
+.explorer-padding {
     padding: 0.5ex;
+}
+.explorer-left-space {
+    margin-left: 2em;
 }
