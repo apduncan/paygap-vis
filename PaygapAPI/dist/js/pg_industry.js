@@ -6,7 +6,7 @@ class IndustryExplorer {
         //id is the id of the DOM element the explorer should be placed in
         this._id = id
         this._undoManager = new UndoManager()
-        
+        //define the heirarchy 
         this._sicLevels = {
             industry: {
                 field: 'sic_industry',
@@ -44,22 +44,37 @@ class IndustryExplorer {
                 urlName: 'sic'
             }
         }
+        //define starting level
         this._currentLevel = {
             level: startLevel,
             id: null,
             sic: this._sicLevels[startLevel]
         }
-        //create sections which will be used for navigation, and place in object
-        const title = $(`<div class="section-title"></div>`).appendTo(id)
-        const buttons = $(`<div></div>`).appendTo(id)
+        //define available measures and the functions which will draw an individual measure of that type
+        this._measures = {
+            directorRatio: {
+                url: 'directorRatio',
+                name: '% Female Directors',
+                draw: this._drawDirectorRatio
+            },
+            meanGap: {
+                url: 'meanGap',
+                name: '% Mean Pay Gap',
+                draw: this._drawMeanGap
+            }
+        }
+        //define default measure
+        this._currentMeasure = this._measures.directorRatio
+        // create sections which will be used for navigation, and place in object
+        const title = $(`<div class="section-title explorer-padding"></div>`).appendTo(id)
+        const buttons = $(`<div class="explorer-padding"></div>`).appendTo(id)
+        const breadcrumbs = $('<div class="breadcrumbs explorer-padding"></div>').appendTo(id)
         //associate some events with buttons
-        const undoButton = $('<button>Back</button>').appendTo(buttons)
-        const redoButton = $('<button>Forward</button>').appendTo(buttons)
-        const upButton = $('<button>Up</button>').appendTo(buttons)
+        const undoButton = $('<button><img src="./img/back.png"></button>').appendTo(buttons)
+        const redoButton = $('<button><img src="./img/forward.png"></button>').appendTo(buttons)
+        const upButton = $('<button><img src="./img/up.png"></button>').appendTo(buttons)
         $(undoButton).prop('disabled', true)
         $(redoButton).prop('disabled', true)
-        //breadcrumbs div
-        const breadcrumbs = $('<div class="breadcrumbs"></div>').appendTo(id)
         const self = this
         $(undoButton).click(function() {
             self._undoManager.undo()
@@ -250,6 +265,14 @@ class IndustryExplorer {
                     })
                 }
                 //create a chart for this
+                var meanLabel = [{
+                    label: {
+                        text: 'Mean'
+                    }
+                }]
+                if(item > 0) {
+                    meanLabel[0].label.text = ''
+                }
                 var chart = new IndustryDirectorPercentage('#'+id, {
                     url: {
                         sicLevel: obj.description.level.urlName,
@@ -272,6 +295,9 @@ class IndustryExplorer {
                             labels: {
                                 enabled: true
                             }
+                        },
+                        xAxis: {
+                            plotLines: meanLabel
                         }
                     }
                 })

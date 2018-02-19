@@ -121,12 +121,31 @@ class EvenHistogram extends AjaxGraph {
         //calculate a mean
         var plotLines = []
         if(data.length > 0) {
-           var mean = data.reduce(function(a, b) {return a + b}) / data.length
-           plotLines.push({
-               value: mean,
-               width: 1,
-               color: 'black'
-           })
+            var mean = data.reduce(function(a, b) {return a + b}) / data.length
+            plotLines.push({
+                value: mean,
+                width: 1,
+                color: 'black',
+                zIndex: 2,
+                label: {
+                    text: 'Mean'
+                },
+                events: {
+                    mouseover: function(e) {
+                        //set the label to return to if not already set
+                        if(typeof($(this.label.element).data('lineLabel')) === 'undefined') {
+                            $(this.label.element).data('lineLabel', $(this.label.element).text())
+                        }
+                        $(this.label.element).text(`${mean.toFixed(1)}%`)
+                    },
+                    mouseout: function(e) {
+                        const self = this
+                        setTimeout(function() {
+                            $(self.label.element).text($(self.label.element).data('lineLabel'))
+                        }, 1000)
+                    }
+                }
+            })
         }
         var chart =  {
             chart: {
@@ -134,7 +153,8 @@ class EvenHistogram extends AjaxGraph {
             },
             xAxis: {
                 gridLineWidth: 1,
-                plotLines: plotLines           },
+                plotLines: plotLines
+            },
             series: [{
                 name: 'defaultname',
                 type: 'column',
@@ -227,6 +247,58 @@ class IndustryDirectorPercentage extends EvenHistogram {
             bins: 20,
             min: 0,
             max: 100
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+        //cannot get formatter to work properly, have to set manually after
+    }
+
+    _transform_data() {
+        var data = this._data
+        var cleaned = new Array()
+        data.directorRatio.forEach((element) => {
+            cleaned.push(parseFloat(element))
+        })
+        return cleaned
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
+class IndustryMeanPercentage extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?meanGap=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Mean Female/Male pay differencce ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                series: [{
+                    name: '% Mean Pay Gap'
+                }],
+            },
+            bins: 20,
         })
         //merge in customs
         this._set_params(this._params, params)
