@@ -59,6 +59,47 @@ async function meanGap(level, id, response) {
 	return response
 }
 
+async function medianGap(level, id, response) {
+	var field = constants.sicLevels[level].field
+	var query = `SELECT DISTINCT co_hash, co_diff_hourly_median FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+  WHERE ${field} = $1`
+  const { rows } = await db.query(query, [id])
+	var points_only = new Array()
+	for(row in rows) {
+		var point = rows[row]['co_diff_hourly_median']
+		points_only.push(parseFloat(point))
+	}
+  //also want to find the global min and max to help histogram plotting
+  const minMax = await db.query('SELECT MIN(co_diff_hourly_median) AS min, MAX(co_diff_hourly_median) FROM paygap.company', [])
+  console.log(minMax.rows)
+  response['medianGap'] = {
+    points: points_only,
+    min: parseFloat(minMax.rows[0]['min']),
+    max: parseFloat(minMax.rows[0]['max'])
+  }
+  console.log(response)
+	return response
+}
+
+async function workforceFemale(level, id, response) {
+	var field = constants.sicLevels[level].field
+  var query = `SELECT co_hash, co_id, (co_female_lower_band*0.25)+(co_female_middle_band*0.25)+(co_female_upper_band*0.25)+(co_female_upper_quartile*0.25) AS pc_workforce_female FROM paygap.company \
+  NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+  WHERE ${field} =  $1`
+  const { rows } = await db.query(query, [id])
+	var points_only = new Array()
+	for(row in rows) {
+		var point = rows[row]['pc_workforce_female']
+		points_only.push(parseFloat(point))
+	}
+  //also want to find the global min and max to help histogram plotting
+  response['workforceFemale'] = {
+    points: points_only,
+  }
+  console.log(response)
+	return response
+}
+
 async function levelInfo(level, id, response) {
   var drillUpLevel = constants.sicLevels[level]['drillUp']
   var drillUpField = null
@@ -112,6 +153,8 @@ async function breadcrumbs(level, id, response) {
 var dataFunctions = []
 dataFunctions['directorRatio'] = directorRatio
 dataFunctions['meanGap'] = meanGap
+dataFunctions['medianGap'] = medianGap
+dataFunctions['workforceFemale'] = workforceFemale
 
 //Different available routes for this resource
 

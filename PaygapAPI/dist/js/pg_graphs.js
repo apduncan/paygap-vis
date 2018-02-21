@@ -91,7 +91,7 @@ class AjaxGraph {
         Object.keys(params).forEach(element => {
             //determine if this is an object, and needs to be called recursively
             var value = params[element]
-            if(value instanceof Object) {
+            if(value instanceof Object && typeof(value) !== 'function') {
                 //create highcharts object if it does not exist
                 if(typeof(highcharts[element]) === 'undefined') {
                     highcharts[element] = new Object()
@@ -118,6 +118,7 @@ class EvenHistogram extends AjaxGraph {
         //bin the data
         //take settings from params
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
+        this._binned = binned
         //calculate a mean
         var plotLines = []
         if(data.length > 0) {
@@ -223,6 +224,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
         var pass = { params }
         super(id, URL, pass)
         //merge in defaults
+        const self = this
         this._set_params(this._params, {
             highcharts: {
                 chart: {
@@ -241,12 +243,12 @@ class IndustryDirectorPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Female Directors'
-                }]
-                // tooltip: {
-                //     formatter: function() {
-                //         return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+binned.interval}</strong>% female directors`
-                //     }
-                // }
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+self._binned.interval}</strong>% female directors`
+                    }
+                }
             },
             bins: 20,
             min: 0,
@@ -254,7 +256,6 @@ class IndustryDirectorPercentage extends EvenHistogram {
         })
         //merge in customs
         this._set_params(this._params, params)
-        //cannot get formatter to work properly, have to set manually after
     }
 
     _transform_data() {
@@ -282,6 +283,7 @@ class IndustryMeanPercentage extends EvenHistogram {
         var pass = { params }
         super(id, URL, pass)
         //merge in defaults
+        const self = this
         this._set_params(this._params, {
             highcharts: {
                 chart: {
@@ -299,15 +301,16 @@ class IndustryMeanPercentage extends EvenHistogram {
                     }
                 },
                 series: [{
-                    name: '% Mean Pay Gap'
-                }]
-                // tooltip: {
-                //     formatter: function() {
-                //         return `<strong>${this.y}</strong> companies have a mean gap between <strong>${this.x}%</strong> - <strong>${this.x+binned.interval}</strong>%`
-                //     }
-                // }
+                    name: '% Mean Pay Gap',
+                    color: ' #ff6600'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a mean gap between <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}</strong>%`
+                    }
+                }
             },
-            bins: 30,
+            bins: 30
         })
         //merge in customs
         this._set_params(this._params, params)
@@ -324,6 +327,131 @@ class IndustryMeanPercentage extends EvenHistogram {
         var data = this._data
         var cleaned = new Array()
         data.meanGap.points.forEach((element) => {
+            cleaned.push(parseFloat(element))
+        })
+        return cleaned
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
+class IndustryMedianPercentage extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?medianGap=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Mean Female/Male pay differencce ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                series: [{
+                    name: '% Median Pay Gap',
+                    color: '#00FF66'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a median gap between <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}</strong>%`
+                    }
+                }
+            },
+            bins: 30
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _draw() {
+        //add min/max to params
+        this._params['min'] = parseFloat(this._data.medianGap['min'])
+        this._params['max'] = parseFloat(this._data.medianGap['max'])
+        super._draw()
+    }
+
+    _transform_data() {
+        var data = this._data
+        var cleaned = new Array()
+        data.medianGap.points.forEach((element) => {
+            cleaned.push(parseFloat(element))
+        })
+        return cleaned
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
+class IndustryWorkforcePercentage extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?workforceFemale=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Percentage workforce which is female ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                series: [{
+                    name: '% Workforce Female',
+                    color: '#6600FF'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a workforce between <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}</strong>% female`
+                    }
+                }
+            },
+            bins: 20,
+            min: 0,
+            max: 100
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+        var data = this._data
+        var cleaned = new Array()
+        data.workforceFemale.points.forEach((element) => {
             cleaned.push(parseFloat(element))
         })
         return cleaned

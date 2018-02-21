@@ -61,6 +61,16 @@ class IndustryExplorer {
                 url: 'meanGap',
                 name: '% Mean Pay Gap',
                 draw: this._drawMeanGap
+            },
+            medianGap: {
+                url: 'medianGap',
+                name: '% Median Pay Gap',
+                draw: this._drawMedianGap
+            },
+            workforceFemale: {
+                url: 'workforceFemale',
+                name: '% Workforce Female',
+                draw: this._drawWorkforceFemale
             }
         }
         //define default measure
@@ -316,6 +326,86 @@ class IndustryExplorer {
         chart.fetchAndDraw()
     }
 
+    _drawMedianGap(item, index, id) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryMedianPercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            }
+        })
+        chart.fetchAndDraw()
+    }
+
+    _drawWorkforceFemale(item, index, id) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryWorkforcePercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            }
+        })
+        chart.fetchAndDraw()
+    }
+    
     _drawLevel(level, id) {
         //compose url to request items at the required level
         var url

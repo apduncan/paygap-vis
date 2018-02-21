@@ -54,7 +54,12 @@ button:disabled {
     text-align: left;
     background: white;
     color: rgb(123, 73, 173);
-    border: rgb(123, 73, 173) thin solid;
+    border-top: rgb(123, 73, 173) thin solid;
+    border-bottom: rgb(123, 73, 173) thin solid;
+    border-left: rgb(123, 73, 173) thin solid;
+}
+.radio-toggle label:last-child {
+    border-right: rgb(123, 73, 173) thin solid;    
 }
 .radio-toggle label:hover {
     background: rgb(179, 121, 238);
@@ -140,7 +145,11 @@ div.small-card .title {
     font-size: medium;
     font-family: Georgia, 'Times New Roman', Times, serif;
     overflow-y: scroll;
-    padding: 0.5em;
+    padding: 0.5em; 
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+div.small-card .title::-webkit-scrollbar {
+    display: none;
 }
 div.section-title {
     font-family: Georgia, 'Times New Roman', Times, serif;
