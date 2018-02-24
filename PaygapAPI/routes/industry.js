@@ -25,33 +25,38 @@ async function buildResponse(level, id, response, req) {
 async function directorRatio(level, id, response) {
   //field relevant field
   var field = constants.sicLevels[level].field
-  var query = `SELECT pc_female FROM paygap.co_director_count NATURAL JOIN \
+  var query = `SELECT DISTINCT co_id, pc_female FROM paygap.co_director_count NATURAL JOIN \
   paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE ${field} = $1 AND NOT pc_female IS NULL`
   const { rows } = await db.query(query, [id])
-  var points_only = new Array()
+  var items = new Array()
   for(row in rows) {
-    var point = rows[row]['pc_female']
-    points_only.push(parseFloat(point))
+    items.push({
+      value: parseFloat(rows[row]['pc_female']) ,
+      id: rows[row]['co_id']
+    })
   }
-  response['directorRatio'] = points_only
+  response['directorRatio'] = {
+    items: items
+  }
   return response
 }
 
 async function meanGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT co_hash, co_diff_hourly_mean FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+	var query = `SELECT DISTINCT co_hash, co_diff_hourly_mean, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
 	WHERE ${field} = $1`
 	const { rows } = await db.query(query, [id])
-	var points_only = new Array()
+	var items = new Array()
 	for(row in rows) {
-		var point = rows[row]['co_diff_hourly_mean']
-		points_only.push(parseFloat(point))
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['co_diff_hourly_mean'])
+    })
 	}
   //also want to find the global min and max to help histogram plotting
   const minMax = await db.query('SELECT MIN(co_diff_hourly_mean) AS min, MAX(co_diff_hourly_mean) FROM paygap.company', [])
-  console.log(minMax.rows)
   response['meanGap'] = {
-    points: points_only,
+    items: items,
     min: parseFloat(minMax.rows[0]['min']),
     max: parseFloat(minMax.rows[0]['max'])
   }
@@ -61,19 +66,21 @@ async function meanGap(level, id, response) {
 
 async function medianGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT co_hash, co_diff_hourly_median FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+	var query = `SELECT DISTINCT co_hash, co_diff_hourly_median, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
   WHERE ${field} = $1`
   const { rows } = await db.query(query, [id])
-	var points_only = new Array()
+	var items = new Array()
 	for(row in rows) {
-		var point = rows[row]['co_diff_hourly_median']
-		points_only.push(parseFloat(point))
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['co_diff_hourly_median'])
+    })
 	}
   //also want to find the global min and max to help histogram plotting
   const minMax = await db.query('SELECT MIN(co_diff_hourly_median) AS min, MAX(co_diff_hourly_median) FROM paygap.company', [])
   console.log(minMax.rows)
   response['medianGap'] = {
-    points: points_only,
+    items: items,
     min: parseFloat(minMax.rows[0]['min']),
     max: parseFloat(minMax.rows[0]['max'])
   }
@@ -87,14 +94,16 @@ async function workforceFemale(level, id, response) {
   NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
   WHERE ${field} =  $1`
   const { rows } = await db.query(query, [id])
-	var points_only = new Array()
+	var items = new Array()
 	for(row in rows) {
-		var point = rows[row]['pc_workforce_female']
-		points_only.push(parseFloat(point))
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['pc_workforce_female'])
+    })
 	}
   //also want to find the global min and max to help histogram plotting
   response['workforceFemale'] = {
-    points: points_only,
+    items: items,
   }
   console.log(response)
 	return response

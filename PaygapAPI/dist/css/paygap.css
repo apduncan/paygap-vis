@@ -61,12 +61,15 @@ button:disabled {
 .radio-toggle label:last-child {
     border-right: rgb(123, 73, 173) thin solid;    
 }
-.radio-toggle label:hover {
-    background: rgb(179, 121, 238);
-}
 .radio-toggle input:checked + label {
     background: rgb(123, 73, 173);
     color: white;
+}
+.radio-toggle input:checked + label:hover {
+    background: rgb(179, 121, 238);
+}
+.radio-toggle input + label:hover {
+    background: rgb(179, 121, 238);
 }
 .radio-toggle label span:before {
     content: '';
@@ -164,4 +167,30 @@ div.section-title {
 }
 .explorer-left-space {
     margin-left: 2em;
+}
+
+/*COMPANY LIST STYLES*/
+tr#template-colist {
+    display: none;
+}
+div.quartile-block-bg {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    background: rgb(197, 159, 255);
+}
+div.quartile-block {
+    background: #6600FF;
+    font-size: x-small;
+    font-weight: bold;
+    color: white;
+    padding: 0.3ex;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+th.even-width {
+    width: 16vw;
 }

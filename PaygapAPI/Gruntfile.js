@@ -38,7 +38,14 @@ module.exports = function (grunt) {
 	       cwd: '<%= config.app %>/undo-manager/lib',
 	       src: 'undomanager.js',
 	       dest: '<%= config.dist %>/js'
-       }]
+       },
+      {
+	       expand: true,
+	       cwd: '<%= config.app %>/list.js/dist/',
+	       src: 'list.min.js',
+	       dest: '<%= config.dist %>/js'
+       }
+      ]
       }
     },
     uglify: {

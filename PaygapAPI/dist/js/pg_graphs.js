@@ -121,8 +121,9 @@ class EvenHistogram extends AjaxGraph {
         this._binned = binned
         //calculate a mean
         var plotLines = []
-        if(data.length > 0) {
-            var mean = data.reduce(function(a, b) {return a + b}) / data.length
+        const chartObj = this
+        if(binned.valuesOnly.length > 0) {
+            var mean = binned.valuesOnly.reduce(function(a, b) {return a + b}) / data.length
             plotLines.push({
                 value: mean,
                 width: 1,
@@ -164,8 +165,22 @@ class EvenHistogram extends AjaxGraph {
                 data: binned.data,
                 pointPadding: 0,
                 groupPadding: 0,
-                pointPlacement: 'between'
-            }]
+                pointPlacement: 'between',
+            }],
+            plotOptions: {
+                column: {
+                    point: {
+                        events: {
+                            click: function(e) {
+                                //this should open a modal list of all the companies within this bin
+                                //with summary statistics
+                                console.log(chartObj._binned.objectBins[this.index])
+                                e.stopPropagation()
+                            }
+                        }
+                    } 
+                }
+            }
         }
         this._set_params(chart, this._params.highcharts)
         // var chart_obj = Highcharts.chart(this._id, chart)
@@ -173,13 +188,13 @@ class EvenHistogram extends AjaxGraph {
     }
 
     _even_bins(data, bins, min, max) {
-        //takes a single dimensional array of floating point numbers
-        //clean up - parse all to floats
-        var clean_data = new Array()
-        for(var item in data) {
-            clean_data.push(parseFloat(data[item]))
+        //takes an array of object in form { id: id, value: floatpoint }
+        //make an arrays of just he floating points
+        var points = new Array()
+        for(var idx in data) {
+            const item = data[idx]
+            points.push(item.value)
         }
-        data = clean_data
         //find min ad max if not specified
         if(typeof(min) === 'undefined' || typeof(max) === 'undefined') {
             min = Math.min.apply(null, data)
@@ -190,31 +205,202 @@ class EvenHistogram extends AjaxGraph {
             bins = 10
         }
         //bin data
-        var counts = Array.apply(null, Array(bins)).map(Number.prototype.valueOf,0)
+        var objectBins = new Array()
+        for(var i = 0; i < bins; i++) {
+            objectBins.push(new Array())
+        }
         const interval = (max+(-min))/bins
         for(var point in data) {
-            var float_point = parseFloat(data[point])
+            var float_point = parseFloat(data[point].value)
             var bin = Math.floor((float_point-min)/interval)
             if(bin > (bins-1)) {
                 bin = bins-1
             }
-            counts[bin] = counts[bin]+1
+            objectBins[bin].push(data[point])
         }
         //generate labels
         var labels = new Array()
         for(var i = 0; i < bins; i++) {
             var element = [
                 parseFloat(parseFloat(min+(i*interval)).toFixed(2)),
-                counts[i]
+                objectBins[i].length
             ]
             labels.push(element)
         }
         return {
             data: labels,
+            valuesOnly: points,
+            objectBins: objectBins,
             interval: interval,
             min: min,
             max: max
         }
+    }
+}
+
+class MeanSummary extends AjaxGraph {
+    constructor(id, url, params) {
+        super(id, url, params)
+    }
+
+    _draw() {
+        const data = this._transform_data()
+        var chart = {
+            chart: {
+                type: 'bar',
+                spacing: [5, 5, 5, 5]
+            },
+            tooltip: {
+                enabled: false
+            },
+            title: {
+                text: ''
+            },
+            credits: {
+                enabled: false
+            },
+            exporting: {
+                enabled: false
+            },
+            legend: {
+                enabled: false
+            },
+            yAxis: {
+                title: {
+                    text: null
+                },
+                plotLines: [{
+                    value: data.mean,
+                    width: 1,
+                    color: 'black',
+                    zIndex: 5,
+                }],
+                startOnTick: false,
+                endOnTick: false,
+                min: data.min,
+                max: data.max,
+            },
+            xAxis: {
+                gridLineWidth: 1,
+  
+                title: {
+                    text: null
+                },
+                labels: {
+                    enabled: false
+                },
+                startOnTick: false,
+                endOnTick: false
+            },
+            series: [{
+                name: 'defaultname',
+                type: 'column',
+                data: [parseFloat(this._params.plotPoint.toFixed(1))],
+                pointPadding: 0,
+                groupPadding: 0,
+                pointPlacement: 'between',
+                dataLabels: {
+                    enabled: true,
+                    formatter: function() {
+                        return this.point.y.toFixed(1)
+                    }
+                }
+            }]
+        }
+        this._set_params(chart, this._params.highcharts)
+        Highcharts.chart(this._id, chart)
+    }
+
+    _transform_data() {
+        var measure = null
+        const self = this
+        Object.keys(this._data).forEach(function(element, index) {
+            if(element !== 'description') {
+                measure = self._data[element] 
+            }
+        })
+        const items = measure.items
+        var total = 0
+        for(var i in items) {
+            const point = parseFloat(items[i].value)
+            total += point
+        }
+        const mean = total / items.length
+        return {
+            mean: mean,
+            min: measure.min,
+            max: measure.max
+        }
+    }
+}
+
+class MeanGapMeanSummary extends MeanSummary {
+    constructor(id, params) {
+        const URL = './industry/section/%ID%?meanGap=true'
+        var pass = {params}
+        super(id, URL, pass.params)
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: 'Mean Pay Gap',
+                    dataLabels: {
+                        formatter: function() {
+                            return `${this.y}%`
+                        }
+                    }
+                }]
+            }
+        })
+    }
+}
+
+class DirectorRatioMeanSummary extends MeanSummary {
+    constructor(id, params) {
+        const URL = './industry/section/%ID%?directorRatio=true'
+        var pass = {params}
+        super(id, URL, pass.params)
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Female Directors',
+                    dataLabels: {
+                        formatter: function() {
+                            return `${this.y}%`
+                        }
+                    }
+                }],
+                yAxis: {
+                    min: 0,
+                    max: 100,
+                    endOnTick: true,
+                    startOnTick: true
+                }
+            }
+        })
+    }
+}
+
+class MedianGapMeanSummary extends MeanSummary {
+    constructor(id, params) {
+        const URL = './industry/section/%ID%?medianGap=true'
+        var pass = {params}
+        super(id, URL, pass.params)
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: 'Median Pay Gap',
+                    color: '#00FF66',
+                    dataLabels: {
+                        formatter: function() {
+                            return `${this.y}%`
+                        }
+                    }
+                }]
+            }
+        })
     }
 }
 
@@ -259,12 +445,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
     }
 
     _transform_data() {
-        var data = this._data
-        var cleaned = new Array()
-        data.directorRatio.forEach((element) => {
-            cleaned.push(parseFloat(element))
-        })
-        return cleaned
+       return this._data.directorRatio.items
     }
 
     set data(data) {
@@ -324,12 +505,7 @@ class IndustryMeanPercentage extends EvenHistogram {
     }
 
     _transform_data() {
-        var data = this._data
-        var cleaned = new Array()
-        data.meanGap.points.forEach((element) => {
-            cleaned.push(parseFloat(element))
-        })
-        return cleaned
+        return this._data.meanGap.items
     }
 
     set data(data) {
@@ -389,14 +565,8 @@ class IndustryMedianPercentage extends EvenHistogram {
     }
 
     _transform_data() {
-        var data = this._data
-        var cleaned = new Array()
-        data.medianGap.points.forEach((element) => {
-            cleaned.push(parseFloat(element))
-        })
-        return cleaned
+        return this._data.medianGap.items
     }
-
     set data(data) {
         //expecting data.data, so construct this
         this._data = {
@@ -449,12 +619,7 @@ class IndustryWorkforcePercentage extends EvenHistogram {
     }
 
     _transform_data() {
-        var data = this._data
-        var cleaned = new Array()
-        data.workforceFemale.points.forEach((element) => {
-            cleaned.push(parseFloat(element))
-        })
-        return cleaned
+        return this._data.workforceFemale.items
     }
 
     set data(data) {
