@@ -175,6 +175,19 @@ class EvenHistogram extends AjaxGraph {
                                 //this should open a modal list of all the companies within this bin
                                 //with summary statistics
                                 console.log(chartObj._binned.objectBins[this.index])
+                                var coInBar = new Array()
+                                for(var idx in chartObj._binned.objectBins[this.index]) {
+                                    coInBar.push(chartObj._binned.objectBins[this.index][idx].id)
+                                }
+                                //try top open a modal list with all these companies
+                                const modal = $('<div class="w3-modal"><div class="w3-modal-content w3-animate-opacity"><div class="close-bar"></div><div class="scroll-content"><div id="modal_co_list"></div></div></div></div>').appendTo('body')
+                                //add a close modal button
+                                const closeButton = $('<img src="./img/cross.png" style="padding: 0.5ex">').appendTo($(modal).find('.close-bar').first())
+                                $(closeButton).click(function(e) {
+                                    $(modal).remove()
+                                })
+                                const list = new CompanyList("#modal_co_list", "#data-container", {list:coInBar})
+                                $(modal).show()
                                 e.stopPropagation()
                             }
                         }
@@ -240,10 +253,25 @@ class EvenHistogram extends AjaxGraph {
 
 class MeanSummary extends AjaxGraph {
     constructor(id, url, params) {
+        params.noMean = false
+        if(params.url.id == null) {
+            //use a default industry, so we can get the global min/max
+            params.url.id = 'A'
+            params.noMean = true
+        }
         super(id, url, params)
     }
 
     _draw() {
+        var plotLines = []
+        if(!this._params.noMean) {
+            plotLines.push({
+                value: data.mean,
+                width: 1,
+                color: 'black',
+                zIndex: 5,
+            })
+        }
         const data = this._transform_data()
         var chart = {
             chart: {
@@ -269,12 +297,7 @@ class MeanSummary extends AjaxGraph {
                 title: {
                     text: null
                 },
-                plotLines: [{
-                    value: data.mean,
-                    width: 1,
-                    color: 'black',
-                    zIndex: 5,
-                }],
+                plotLines: plotLines,
                 startOnTick: false,
                 endOnTick: false,
                 min: data.min,
@@ -296,9 +319,10 @@ class MeanSummary extends AjaxGraph {
                 name: 'defaultname',
                 type: 'column',
                 data: [parseFloat(this._params.plotPoint.toFixed(1))],
-                pointPadding: 0,
-                groupPadding: 0,
-                pointPlacement: 'between',
+                //pointPadding: 0,
+                //groupPadding: 0,
+                maxPointWidth: 20,
+                //pointPlacement: 'between',
                 dataLabels: {
                     enabled: true,
                     formatter: function() {

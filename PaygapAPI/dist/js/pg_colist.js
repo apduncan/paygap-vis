@@ -36,9 +36,10 @@ class CompanyList {
         //empty out contents, replace with list
         $(this._elements.container).empty()
         const search = $(`<input type="text" class="search" placeholder="Search Companies">`).appendTo(this._elements.container)
-        const table = $(`<table><thead><tr> \
-        <th class="sort even-width" data-sort="co_name">Name</th> \
-        <th class="sort" data-sort="co_public">Public</th>
+        const table = $(`<table class="co-list"><thead><tr> \
+        <th class="sort width-25" data-sort="co_name">Name</th> \
+        <th class="sort width-5" data-sort="sic_section">Section</th>
+        <th class="sort width-5" data-sort="co_public">Public</th>
         <th class="sort even-width" data-sort="co_diff_hourly_mean">Mean Gap</th> \
         <th class="sort even-width" data-sort="co_diff_hourly_median">Median Gap</th> \
         <th class="sort even-width" data-sort="pc_female">Female Directors</td> \
@@ -50,7 +51,8 @@ class CompanyList {
         //add template line
         const template = $(`<tr id="template-colist" class="co-item"> \
         <td class="co_name"></td> \
-        <td class="co_public"></td> \
+        <td class="sic_section"></td> \
+        <td class="co_public"></td>
         <td class="co_diff_hourly_mean"></td> \
         <td class="co_diff_hourly_median"></td> \
         <td class="pc_female"></td> \
@@ -69,6 +71,8 @@ class CompanyList {
             options: 'test_template',
             valueNames: [
                 'co_name', 
+                { name: 'co_public', attr: 'data-public' },
+                { name: 'sic_section', attr: 'data-code' },
                 { data: ['index'] },
                 { name: 'workforce_female', attr: 'data-quartile' },
                 { name: 'pc_female', attr: 'data-pcfemale' }, 
@@ -85,6 +89,11 @@ class CompanyList {
             const item = data.items[idx]
             data.items[idx]['workforce_female'] = (parseFloat(item.co_female_lower_band * 0.25) + parseFloat(item.co_female_middle_band * 0.25) + parseFloat(item.co_female_upper_band * 0.25) + parseFloat(item.co_female_upper_quartile * 0.25))
             data.items[idx]['index'] = idx
+            //set section if any
+            if(item.sections.length > 0) {
+                data.items[idx]['sic_section'] = item.sections[0].id
+                data.items[idx]['sic_section_desc'] = item.sections[0].description
+            }
             console.log(data.items[idx])
             companyList.add(data.items[idx])
             this._drawCompanyLine($(table).find('.co-item').last())
@@ -93,6 +102,8 @@ class CompanyList {
     }
 
     _drawCompanyLine(element) {
+        //get index
+        const index = parseInt($(element).data('index'))
         //convert a table line into graphical representations
         //draw the quartile pyramid
         $(element).find('.quartile-block').each(function(index, el) {
@@ -100,9 +111,23 @@ class CompanyList {
             $(el).width(`${width}%`)
             $(el).text(`${width.toFixed(0)}%`)
         })
-        //graph to represent deviation from mean
+        //change industry section to icon
+        const section = $(element).find('.sic_section').first()
+        const code = $(section).data('code')
+        if(typeof(code) !== 'undefined' && code.length > 0) {
+            const desc = this._data.items[index].sic_section_desc
+            $(section).append(`<div class="icon"><img src="./img/sect/24/${code.toLowerCase()}.png" title="${desc}" alt="${desc}"></div>`)
+        }
+        $(section).tooltip()
+        //change public/private to icon
+        const pubSect = $(element).find('.co_public')
+        const pub = $(pubSect).data('public')
+        var img = 'cross.png'
+        if(pub) {
+            img = 'tick.png'
+        }
+        $(pubSect).append(`<div class="icon"><img src="./img/${img}"><div>`)
         //need to give each element meant to carry this a unique id
-        const index = $(element).data('index')
         this._drawMeanSummary(element, 'co_diff_hourly_mean', 'meangap', index, MeanGapMeanSummary)
         this._drawMeanSummary(element, 'co_diff_hourly_median', 'mediangap', index, MedianGapMeanSummary)
         this._drawMeanSummary(element, 'pc_female', 'pcfemale', index, DirectorRatioMeanSummary)
@@ -112,10 +137,19 @@ class CompanyList {
         const meanCell = $(element).find(`.${dbField}`)
         const cellId = `${this._listId}_${dataField}_${index}`
         $(meanCell).attr('id', cellId) 
+        //if no industry section (government bodies mostly) assign id null
+        var id;
+        try {
+            id = this._data.items[parseInt(index)].sections[0].id
+        } catch(err) {
+            if(err.name === 'TypeError') {
+                id = null
+            }
+        }
         const meanChart = new graphClass(cellId, {
             plotPoint: parseFloat($(meanCell).data(dataField)),
             url: {
-                id: this._data.items[parseInt(index)].sections[0].id
+                id: null
             },
             highcharts: {
                 yAxis: {
