@@ -52,25 +52,53 @@ class IndustryExplorer {
         }
         //define available measures and the functions which will draw an individual measure of that type
         this._measures = {
-            
             meanGap: {
                 url: 'meanGap',
                 name: '% Mean Pay Gap',
+                explain: 'This is the difference between the mean pay for all females and all males, express as a % male mean pay. \
+                A mean pay gap of 50% shows that mean pay for men is 50% higher than for women \
+                A negative number indicates mean pay for women is higher than for men.',
+                source: {
+                    title: 'UK Gender Pay Gap Reporting 2017/8',
+                    url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
+                },
                 draw: this._drawMeanGap
             },
             medianGap: {
                 url: 'medianGap',
                 name: '% Median Pay Gap',
+                explain: 'This is the difference between the mean pay for all females and all males, express as a % male mean pay. \
+                A mean pay gap of 50% shows that mean pay for men is 50% higher than for women \
+                A negative number indicates mean pay for women is higher than for men.',
+                source: {
+                    title: 'UK Gender Pay Gap Reporting 2017/8',
+                    url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
+                },
                 draw: this._drawMedianGap
             },
             workforceFemale: {
                 url: 'workforceFemale',
                 name: '% Workforce Female',
+                explain: 'The percentage of the workforce which is female',
+                source: {
+                    title: 'UK Gender Pay Gap Reporting 2017/8',
+                    url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
+                },
+ 
                 draw: this._drawWorkforceFemale
             },
             directorRatio: {
                 url: 'directorRatio',
                 name: '% Female Directors',
+                explain: 'The pecentage of directors of the company who are female. \
+                Director names were taken from the Companies House API.  \
+                A gender for these names was estimated using the genderize.io API. \
+                When the service could not estimate gender for a director, no data is presented for that company. \
+                Other causes of missing data are not all companies are listed on Companies house (governmental bodies, mutual societies) and company numbers being incorrect in the source data.',
+                source: {
+                    title: 'Companies House',
+                    url: 'https://www.gov.uk/government/organisations/companies-house'
+                },
                 draw: this._drawDirectorRatio
             }
         }

@@ -663,3 +663,205 @@ class IndustryWorkforcePercentage extends EvenHistogram {
         this._draw()
     }
 }
+
+class BandedEvenHistogram extends EvenHistogram {
+    //represents number of items in bin by color shade, rather than bar height
+    //and draws a single bar on top (vertically), to represent position of a single company
+    //params should include: color {h: hue, v: value, sMin: minimum saturation, sMax: maximum saturation}
+    //                       bar: {color: color of bar, value: height to draw}
+    constructor(id, url, params) {
+        super(id, url, params)
+    }
+
+    _hsv2rgb(h, s, v) {
+        //from https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
+        var r, g, b, i, f, p, q, t;
+        if (arguments.length === 1) {
+            s = h.s, v = h.v, h = h.h;
+        }
+        i = Math.floor(h * 6);
+        f = h * 6 - i;
+        p = v * (1 - s);
+        q = v * (1 - f * s);
+        t = v * (1 - (1 - f) * s);
+        switch (i % 6) {
+            case 0: r = v, g = t, b = p; break;
+            case 1: r = q, g = v, b = p; break;
+            case 2: r = p, g = v, b = t; break;
+            case 3: r = p, g = q, b = v; break;
+            case 4: r = t, g = p, b = v; break;
+            case 5: r = v, g = p, b = q; break;
+        }
+        return {
+            r: Math.round(r * 255),
+            g: Math.round(g * 255),
+            b: Math.round(b * 255)
+        };
+    }
+
+    _colorBands(binnedData) {
+        //return an object defining what color to make each of the binned data
+        var series = {
+            data: [],
+            pointPadding: 0,
+            groupPadding: 0,
+        }
+        const self = this
+        //find the min an max bar heights
+        var min = binnedData.min
+        var max = binnedData.max
+        const satInterval = (this._params.color.sMax - this._params.color.sMin) / this._params.bins
+        const satMin = this._params.color.sMin
+        binnedData.data.forEach(function(el, idx) {
+            var sat = satMin + (((el[1] - min) / (max - min)) * 100) * satInterval
+            const rgb = self._hsv2rgb(self._params.color.h, sat, self._params.color.v)
+            series.data.push({
+                y: 1,
+                x: idx * binnedData.interval,
+                color: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                binCount: el[1]
+            })
+        })
+        return series
+    }
+
+    _draw() {
+        //turn data into usable form - will differ between implementations
+        var data = this._transform_data()
+        //bin the data
+        //take settings from params
+        var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
+        this._binned = binned
+        //calculate a mean
+        var plotLines = []
+        const chartObj = this
+        if(binned.valuesOnly.length > 0) {
+            var mean = binned.valuesOnly.reduce(function(a, b) {return a + b}) / data.length
+            plotLines.push({
+                value: mean,
+                width: 1,
+                color: 'black',
+                zIndex: 2,
+                label: {
+                    text: 'Mean'
+                },
+                events: {
+                    mouseover: function(e) {
+                        //set the label to return to if not already set
+                        if(typeof($(this.label.element).data('lineLabel')) === 'undefined') {
+                            $(this.label.element).data('lineLabel', $(this.label.element).text())
+                        }
+                        $(this.label.element).text(`${mean.toFixed(1)}%`)
+                    },
+                    mouseout: function(e) {
+                        const self = this
+                        setTimeout(function() {
+                            $(self.label.element).text($(self.label.element).data('lineLabel'))
+                        }, 1000)
+                    }
+                }
+            })
+        }
+        const self = this
+        var chart =  {
+            chart: {
+                type: 'bar',
+            },
+            title: {
+                text: ''
+            },
+            exporting: {
+                enabled: false
+            },
+            credits: {
+                enabled: false
+            },
+            exporting: {
+                enabled: false
+            },
+            legend: {
+                enabled: false
+            },
+            xAxis: {
+                gridLineWidth: 0,
+                title: {
+                    text: null
+                },
+                labels: {
+                    format: '{value}%',
+                },
+                lineWidth: 0,
+                minorGridLineWidth: 0,
+                lineColor: 'transparent',
+                minorTickLength: 0,
+                tickLength: 0,
+                reversed: false,
+                offset: -12
+            },
+            yAxis: {
+                min: 0,
+                max: 1,
+                gridLineWidth: 0,
+                title: {
+                    text: null
+                },
+                minorGridLineWidth: 0,
+                lineColor: 'transparent',
+                labels: {
+                    enabled: false
+                },
+                minorTickLength: 0,
+                tickLength: 0,
+            },
+            series: [self._colorBands(self._binned), {
+                type: 'scatter',
+                marker: {
+                    radius: 10,
+                },
+                color: 'white',
+                name: 'test',
+                radius: 10,
+                data: [{x: -2.5, y: 0.5}, {x: 47.5, y:0.5}]
+            }],
+            plotOptions: {
+                series: {
+                    pointPadding: 0
+                }
+            }
+        }
+        this._set_params(chart, this._params.highcharts)
+        // var chart_obj = Highcharts.chart(this._id, chart)
+        $(this._id).highcharts(chart)
+    }
+}
+
+class BandedIndustryDirectorPercentage extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?directorRatio=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Female Directors'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.binCount}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+self._binned.interval}</strong>% female directors`
+                    }
+                }
+            },
+            bins: 20,
+            min: 0,
+            max: 100
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.directorRatio.items
+    }
+}
