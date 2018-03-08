@@ -149,6 +149,7 @@ class EvenHistogram extends AjaxGraph {
                 }
             })
         }
+        const self = this
         var chart =  {
             chart: {
                 type: 'column',
@@ -186,7 +187,8 @@ class EvenHistogram extends AjaxGraph {
                                 $(closeButton).click(function(e) {
                                     $(modal).remove()
                                 })
-                                const list = new CompanyList("#modal_co_list", "#data-container", {list:coInBar})
+                                console.log(self._params)
+                                const list = new CompanyList("#modal_co_list", "#data-container", {list:coInBar, level:self._params.url.sicLevel, id: self._params.url.id})
                                 $(modal).show()
                                 e.stopPropagation()
                             }
@@ -264,6 +266,7 @@ class MeanSummary extends AjaxGraph {
 
     _draw() {
         var plotLines = []
+        const data = this._transform_data()
         if(!this._params.noMean) {
             plotLines.push({
                 value: data.mean,
@@ -272,11 +275,15 @@ class MeanSummary extends AjaxGraph {
                 zIndex: 5,
             })
         }
-        const data = this._transform_data()
         var chart = {
             chart: {
                 type: 'bar',
                 spacing: [5, 5, 5, 5]
+            },
+            plotOptions : {
+                series: {
+                    animation: false
+                }
             },
             tooltip: {
                 enabled: false
@@ -360,7 +367,7 @@ class MeanSummary extends AjaxGraph {
 
 class MeanGapMeanSummary extends MeanSummary {
     constructor(id, params) {
-        const URL = './industry/section/%ID%?meanGap=true'
+        const URL = './industry/%LEVEL%/%ID%?meanGap=true'
         var pass = {params}
         super(id, URL, pass.params)
         const self = this
@@ -372,7 +379,8 @@ class MeanGapMeanSummary extends MeanSummary {
                         formatter: function() {
                             return `${this.y}%`
                         }
-                    }
+                    },
+                    color: '#ff6600'
                 }]
             }
         })
@@ -381,7 +389,7 @@ class MeanGapMeanSummary extends MeanSummary {
 
 class DirectorRatioMeanSummary extends MeanSummary {
     constructor(id, params) {
-        const URL = './industry/section/%ID%?directorRatio=true'
+        const URL = './industry/%LEVEL%/%ID%?directorRatio=true'
         var pass = {params}
         super(id, URL, pass.params)
         const self = this
@@ -507,7 +515,7 @@ class IndustryMeanPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Mean Pay Gap',
-                    color: ' #ff6600'
+                    color: '#ff6600'
                 }],
                 tooltip: {
                     formatter: function() {

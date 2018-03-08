@@ -5,8 +5,16 @@
     flex-direction: row;
     align-content: flex-start;
 }
+div.no-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+div.no-content div {
+    color: rgb(197, 159, 255);
+}
 body {
-    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-family: 'Helvetica', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
     font-size: medium;
 }
 a:link {
@@ -157,6 +165,9 @@ div.interactable-card:hover {
 div.interactable:hover {
     cursor: pointer;
 }
+div.small-card .highcharts-point {
+    cursor: pointer;
+}
 div.small-card .title {
     background: rgb(123, 73, 173);
     color: white;
@@ -229,6 +240,10 @@ th.width-5 {
 }
 tr.co-item {
     font-size: small;
+    border: thin;
+}
+tr.co-item:hover {
+    border: thin rgb(197, 159, 255) solid;
 }
 tr.co-item td {
     padding: 0.3ex;
@@ -239,6 +254,11 @@ tr.co-item td:first-child {
 tr.co-item div.icon {
     display: flex;
     justify-content: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+div.icon img {
+    padding: 0.5ex;
 }
 table.co-list {
     border-collapse: collapse;

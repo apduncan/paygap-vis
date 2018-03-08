@@ -52,11 +52,7 @@ class IndustryExplorer {
         }
         //define available measures and the functions which will draw an individual measure of that type
         this._measures = {
-            directorRatio: {
-                url: 'directorRatio',
-                name: '% Female Directors',
-                draw: this._drawDirectorRatio
-            },
+            
             meanGap: {
                 url: 'meanGap',
                 name: '% Mean Pay Gap',
@@ -71,6 +67,11 @@ class IndustryExplorer {
                 url: 'workforceFemale',
                 name: '% Workforce Female',
                 draw: this._drawWorkforceFemale
+            },
+            directorRatio: {
+                url: 'directorRatio',
+                name: '% Female Directors',
+                draw: this._drawDirectorRatio
             }
         }
         //define default measure
@@ -435,8 +436,9 @@ class IndustryExplorer {
                 //define the css id which will be used
                 var id = `industry_director_${item}`
                 //make a div for this
-                var div = `<div id="contain_${id}" class="small-card card ${obj.description.level.drillDown !== null ? 'interactable-card interactable' : ''}">
-                <div class="title" id="link_${id}"><div id="pin_${id}" class="pin interactable"><img src="./img/pin.png"></div>${obj.description.name}</div>
+                var div = `<div id="contain_${id}" class="small-card card ${obj.description.level.drillDown !== null ? 'interactable-card' : ''}">
+                <div class="title" id="link_${id}"><div id="pin_${id}" class="pin interactable"><img src="./img/pin.png"></div>
+                <div id="list_${id}" class="pin interactable"><img src="./img/list.png"></div>${obj.description.name}</div>
                 <div id="${id}"></div>
                 </div>`
                 $(self._elements.graphs).append(div)
@@ -444,6 +446,20 @@ class IndustryExplorer {
                 $(`#pin_${id}`).click(function() {
                     self._pinGraph($(this).data('pinId'))
                     return false
+                })
+                $(`#list_${id}`).data('level', obj.description)
+                $(`#list_${id}`).click(function(e) {
+                    const level = $(this).data('level')
+                    //try top open a modal list with all these companies
+                    const modal = $('<div class="w3-modal"><div class="w3-modal-content w3-animate-opacity"><div class="close-bar"></div><div class="scroll-content"><div id="modal_co_list"></div></div></div></div>').appendTo('body')
+                    //add a close modal button
+                    const closeButton = $('<img src="./img/cross.png" style="padding: 0.5ex">').appendTo($(modal).find('.close-bar').first())
+                    $(closeButton).click(function(e) {
+                        $(modal).remove()
+                    })
+                    const list = new CompanyList("#modal_co_list", "#data-container", {level: level.level.urlName, id: level.id, details: true})
+                    $(modal).show()
+                    e.stopPropagation()
                 })
                 //associate level data, and click handler which uses it
                 if(obj.description.level.drillDown !== null) {

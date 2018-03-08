@@ -40,8 +40,8 @@ class CompanyList {
         <th class="sort width-25" data-sort="co_name">Name</th> \
         <th class="sort width-5" data-sort="sic_section">Section</th>
         <th class="sort width-5" data-sort="co_public">Public</th>
-        <th class="sort even-width" data-sort="co_diff_hourly_mean">Mean Gap</th> \
-        <th class="sort even-width" data-sort="co_diff_hourly_median">Median Gap</th> \
+        <th class="sort even-width" data-sort="co_diff_hourly_mean_sort">Mean Gap</th> \
+        <th class="sort even-width" data-sort="co_diff_hourly_median_sort">Median Gap</th> \
         <th class="sort even-width" data-sort="pc_female">Female Directors</td> \
         <th class="sort even-width" data-sort="workforce_female">% Workforce Female</th> \
         <th class="even-width">Quartiles</th> \
@@ -51,7 +51,7 @@ class CompanyList {
         //add template line
         const template = $(`<tr id="template-colist" class="co-item"> \
         <td class="co_name"></td> \
-        <td class="sic_section"></td> \
+        <td class="sic_section"><div class="icon"></div></td> \
         <td class="co_public"></td>
         <td class="co_diff_hourly_mean"></td> \
         <td class="co_diff_hourly_median"></td> \
@@ -72,7 +72,6 @@ class CompanyList {
             valueNames: [
                 'co_name', 
                 { name: 'co_public', attr: 'data-public' },
-                { name: 'sic_section', attr: 'data-code' },
                 { data: ['index'] },
                 { name: 'workforce_female', attr: 'data-quartile' },
                 { name: 'pc_female', attr: 'data-pcfemale' }, 
@@ -81,7 +80,7 @@ class CompanyList {
                 { name: 'co_female_upper_band', attr: 'data-quartile' },
                 { name: 'co_female_upper_quartile', attr: 'data-quartile' },
                 { name: 'co_diff_hourly_median', attr: 'data-mediangap' },
-                { name: 'co_diff_hourly_mean', attr: 'data-meangap' } 
+                { name: 'co_diff_hourly_mean', attr: 'data-meangap' },
             ]
         })
         for(var idx in data.items) {
@@ -89,18 +88,48 @@ class CompanyList {
             const item = data.items[idx]
             data.items[idx]['workforce_female'] = (parseFloat(item.co_female_lower_band * 0.25) + parseFloat(item.co_female_middle_band * 0.25) + parseFloat(item.co_female_upper_band * 0.25) + parseFloat(item.co_female_upper_quartile * 0.25))
             data.items[idx]['index'] = idx
-            //set section if any
-            if(item.sections.length > 0) {
-                data.items[idx]['sic_section'] = item.sections[0].id
-                data.items[idx]['sic_section_desc'] = item.sections[0].description
-            }
-            console.log(data.items[idx])
+            data.items[idx]['co_diff_hourly_mean_sort'] = this._sortNumber(item.co_diff_hourly_mean)
+            data.items[idx]['co_diff_hourly_median_sort'] = this._sortNumber(item.co_diff_hourly_median)
             companyList.add(data.items[idx])
             this._drawCompanyLine($(table).find('.co-item').last())
         }
         this._companyList = companyList
     }
-
+    
+    _sortNumber(num) {
+        //listjs sorts negative numbers poorly
+        //this turns a number to a string which will sort properly
+        const num2Letter = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']
+        var strArr = parseFloat(num).toFixed(2).toString().split("")
+        //loop through each character, convert to letter
+        var sortStr = ''
+        for(var i in strArr) {
+            const el = strArr[i]
+            var int = parseInt(el)
+            if(!isNaN(int)) {
+                var select = int
+                if(num < 0) {
+                    select = num2Letter.length - (select + 1)
+                }
+                sortStr += num2Letter[select]
+            }
+        }
+        //pad to 8 characters
+        var padChar = 'z'
+        if(num >= 0) {
+            padChar = 'a'
+        }
+        while(sortStr.length < 8) {
+            sortStr =  padChar + sortStr
+        }
+        //make negatives first
+        if(num < 0) {
+            sortStr = 'a' + sortStr
+        } else {
+            sortStr = 'z' + sortStr
+        }
+        return sortStr
+    }
     _drawCompanyLine(element) {
         //get index
         const index = parseInt($(element).data('index'))
@@ -112,11 +141,19 @@ class CompanyList {
             $(el).text(`${width.toFixed(0)}%`)
         })
         //change industry section to icon
+        const sections = this._data.items[index].sections
         const section = $(element).find('.sic_section').first()
-        const code = $(section).data('code')
-        if(typeof(code) !== 'undefined' && code.length > 0) {
-            const desc = this._data.items[index].sic_section_desc
-            $(section).append(`<div class="icon"><img src="./img/sect/24/${code.toLowerCase()}.png" title="${desc}" alt="${desc}"></div>`)
+        if(sections.length > 0) {
+            //if many icons to be added, half the size of each on
+            var scale = ''
+            if(sections.length > 1) {
+                scale = 'style="width: 15px; height: 15px;"'
+            }
+            for(var sIdx in sections) {
+                const desc = sections[sIdx].description
+                const code = sections[sIdx].id
+                $(section).find('div.icon').first().append(`<img src="./img/sect/24/${code.toLowerCase()}.png" title="${desc}" alt="${desc}" ${scale}>`)
+            }
         }
         $(section).tooltip()
         //change public/private to icon
@@ -138,18 +175,26 @@ class CompanyList {
         const cellId = `${this._listId}_${dataField}_${index}`
         $(meanCell).attr('id', cellId) 
         //if no industry section (government bodies mostly) assign id null
-        var id;
-        try {
-            id = this._data.items[parseInt(index)].sections[0].id
-        } catch(err) {
-            if(err.name === 'TypeError') {
-                id = null
-            }
+        var id = this._params.id
+        var level = this._params.level
+        // try {
+        //     id = this._data.items[parseInt(index)].sections[0].id
+        // } catch(err) {
+        //     if(err.name === 'TypeError') {
+        //         id = null
+        //     }
+        // }
+        const dataPoint = $(meanCell).data(dataField)
+        if(dataPoint === 'null' || dataPoint === null) {
+            $(meanCell).empty()
+            $(meanCell).append('<div class="no-content"><div>No Data</div></div>')
+            return
         }
         const meanChart = new graphClass(cellId, {
             plotPoint: parseFloat($(meanCell).data(dataField)),
             url: {
-                id: null
+                level: level,
+                id: id
             },
             highcharts: {
                 yAxis: {

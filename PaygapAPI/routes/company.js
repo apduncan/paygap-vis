@@ -19,8 +19,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/', async (req, res) => {
   //should be passing us an array of id's to get which are in list query
-  const { list } = req.query
-  console.log(list)
+  const { list, level, id } = req.query
   //make a list of all the fields which should be selected
   var fieldList = constants.companyDetails.summary
   try {
@@ -42,21 +41,48 @@ router.get('/', async (req, res) => {
   }
   const fieldString = fullFieldList.join(', ')
   var companies = new Array()
-  const query = `SELECT DISTINCT ${fieldString} FROM paygap.company NATURAL JOIN paygap.co_director_count${sicJoin} WHERE co_id = $1`
-  for(var id in list) {
-    var {rows} = await db.query(query, [parseInt(list[id])])    
-    //find the sections this company operates in
-    const sectionRows = await db.query(`SELECT DISTINCT sic_section, sic_section_desc FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE co_id = $1`, [rows[0].co_id])
-    var sections = new Array()
-    for(var i in sectionRows.rows) {
-      const row = sectionRows.rows[i]
-      sections.push({
-        id: row.sic_section,
-        description: row.sic_section_desc
-      }) 
-    }
-    rows[0]['sections'] = sections
-    companies.push(rows[0])
+  const query = `SELECT DISTINCT ON(company.co_id) ${fieldString} FROM paygap.company NATURAL JOIN paygap.co_director_count${sicJoin}`
+  //after this switch depending on whether list or section requested
+  var response = new Object()
+  if(typeof(list) !== 'undefined') {
+    response = await getFromList(list, response, query)
+  } else if (constants.sicLevels.hasOwnProperty(level)) {
+    response = await getFromLevel(level, id, response, query)
   }
-  res.send({items: companies})
+  res.send(response)
 })
+
+async function addSections(company) {
+  //add section information for a given company object
+  const sectionRows = await db.query(`SELECT DISTINCT sic_section, sic_section_desc FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE co_id = $1`, [company.co_id])
+  var sections = new Array()
+  for(var i in sectionRows.rows) {
+    const row = sectionRows.rows[i]
+    sections.push({
+      id: row.sic_section,
+      description: row.sic_section_desc
+    }) 
+  }
+  company['sections'] = sections
+  return company
+}
+
+async function getFromList(list, response, query) {
+  response['items'] = new Array()
+  for(var id in list) {
+    var {rows} = await db.query(`${query} WHERE co_id = $1 ORDER BY company.co_id`, [parseInt(list[id])])    
+    response.items.push(await addSections(rows[0]))
+  }
+  return response
+}
+
+async function getFromLevel(level, id, response, query) {
+ response['items'] = new Array()
+ console.log(query)
+ const { rows } = await db.query(`${query} WHERE ${constants.sicLevels[level].field} = $1 ORDER BY company.co_id`, [id])
+ for(var idx in rows) {
+   var row = rows[idx]
+    response.items.push(await addSections(row))
+ }
+ return response
+}

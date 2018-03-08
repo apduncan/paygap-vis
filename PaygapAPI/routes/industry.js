@@ -25,8 +25,8 @@ async function buildResponse(level, id, response, req) {
 async function directorRatio(level, id, response) {
   //field relevant field
   var field = constants.sicLevels[level].field
-  var query = `SELECT DISTINCT co_id, pc_female FROM paygap.co_director_count NATURAL JOIN \
-  paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE ${field} = $1 AND NOT pc_female IS NULL`
+  var query = `SELECT DISTINCT ON(company.co_id) co_id, pc_female FROM paygap.co_director_count NATURAL JOIN \
+  paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE ${field} = $1 AND NOT pc_female IS NULL ORDER BY company.co_id`
   const { rows } = await db.query(query, [id])
   var items = new Array()
   for(row in rows) {
@@ -43,8 +43,8 @@ async function directorRatio(level, id, response) {
 
 async function meanGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT co_hash, co_diff_hourly_mean, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
-	WHERE ${field} = $1`
+	var query = `SELECT DISTINCT ON(co_id) co_hash, co_diff_hourly_mean, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+	WHERE ${field} = $1 ORDER BY co_id`
 	const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {
@@ -66,8 +66,8 @@ async function meanGap(level, id, response) {
 
 async function medianGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT co_hash, co_diff_hourly_median, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
-  WHERE ${field} = $1`
+	var query = `SELECT DISTINCT ON (co_id) co_hash, co_diff_hourly_median, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+  WHERE ${field} = $1 ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {
@@ -90,9 +90,9 @@ async function medianGap(level, id, response) {
 
 async function workforceFemale(level, id, response) {
 	var field = constants.sicLevels[level].field
-  var query = `SELECT co_hash, co_id, (co_female_lower_band*0.25)+(co_female_middle_band*0.25)+(co_female_upper_band*0.25)+(co_female_upper_quartile*0.25) AS pc_workforce_female FROM paygap.company \
+  var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, (co_female_lower_band*0.25)+(co_female_middle_band*0.25)+(co_female_upper_band*0.25)+(co_female_upper_quartile*0.25) AS pc_workforce_female FROM paygap.company \
   NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
-  WHERE ${field} =  $1`
+  WHERE ${field} =  $1 ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {
