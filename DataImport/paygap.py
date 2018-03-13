@@ -174,6 +174,7 @@ class Company(Entity):
         if not 'co_hash' in co._data:
             co.get_hash()
         co.directors = Director.get_secondary('co_hash', co._data['co_hash'])
+        co.sic = CompanySic.get_secondary('co_hash', co._data['co_hash']) 
         return co
     
     def get_hash(self):
@@ -206,6 +207,22 @@ class Company(Entity):
                 except Exception:
                     print("Error saving company_sic record - may already exist")
         self.save()
+
+    def fetch_sic(self, refresh=False):
+        '''Get sic codes from CH API''' 
+        if(refresh or not self.sic) and len(self._data['co_number']) > 0:
+            resp = self._chclient.profile(self._data['co_number'])
+            if resp.status_code == 429:
+                raise IOError('600 request/minute limit exceeded')
+            if resp.status_code == 404:
+                raise AttributeError('Company number not found')
+            results = []
+            if 'sic_codes' in resp.json():
+                for sic in resp.json()['sic_codes']:
+                    sic = CompanySic.from_row(dict(zip(['co_hash', 'sic_code'], [self._data['co_hash'], sic])))
+                    results.append(sic)
+                    sic.save()
+            self.sic = results
 
     def fetch_directors(self, refresh=False):
         '''Gets director info from Companies House. If refresh true, gets if already exist'''
@@ -393,6 +410,15 @@ def gender_all_directors():
         print(director._data['dir_forenames'])
         director.genderise()
 
+def fetch_co_sic():
+    cos = Company.get_all()
+    for co in cos:
+        try:
+            co.fetch_sic()
+            co.save()
+        except:
+            print('Error fetching for %s' % [co._data['co_name']])
+
 '''
 for ONE in Company.get_all():
     print("Fetching directors for %s" % [ONE._data['co_name']])
@@ -409,8 +435,7 @@ print(errors)
 '''
 
 if __name__ == "__main__":
-    gender_all_directors()
-
+    fetch_co_sic()
 '''
 for company in companies:
     for director in company.directors:

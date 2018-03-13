@@ -1,3 +1,33 @@
+const colors = {
+    meanGap: {
+        hex: '#ff6600',
+        rgb: {
+            r: 255,
+            g: 102,
+            b: 0
+        }
+    },
+    medianGap: {
+        hex: '#00FF66',
+        rgb: {
+            r: 0,
+            g: 255,
+            b: 102
+        }
+    },
+    workforceFemale: {
+        hex: '#6600FF',
+        rgb: {
+            r: 102,
+            g: 0,
+            b: 255
+        }
+    },
+    quartileSkew: {
+        hex: '#00c16a',
+        rgb: {r: 0, g: 193, b: 106}
+    }    
+}
 class AjaxGraph {
     constructor (id, url, params) {
         this._url = url
@@ -65,13 +95,12 @@ class AjaxGraph {
                     $(self._id).text('Failed ... sorry')
                 })
             }
-        }).catch(function(err) {
+        })/*.catch(function(err) {
            //does not exist in store, get from sever 
            console.log("Error retrieving from localstorage " + parsed_url + err)
-        })
+        })*/
         if(needAjax) {
         //set target DOM element to placeholder
-            
         }
     }
 
@@ -211,9 +240,9 @@ class EvenHistogram extends AjaxGraph {
             points.push(item.value)
         }
         //find min ad max if not specified
-        if(typeof(min) === 'undefined' || typeof(max) === 'undefined') {
-            min = Math.min.apply(null, data)
-            max = Math.max.apply(null, data)
+        if(typeof(min) === 'undefined' || typeof(max) === 'undefined' || isNaN(min) || isNaN(max)) {
+            min = Math.min.apply(null, points)
+            max = Math.max.apply(null, points)
         }
         //default to 10 bins
         if(typeof(bins) == undefined) {
@@ -667,8 +696,8 @@ class IndustryWorkforcePercentage extends EvenHistogram {
 class BandedEvenHistogram extends EvenHistogram {
     //represents number of items in bin by color shade, rather than bar height
     //and draws a single bar on top (vertically), to represent position of a single company
-    //params should include: color {h: hue, v: value, sMin: minimum saturation, sMax: maximum saturation}
-    //                       bar: {color: color of bar, value: height to draw}
+    //params should include: color {r: red, g: green, b: blue, aMin: minimum alpha, aMax: maximum alpha}
+    //                       point: {color: color of point, value: height to draw}
     constructor(id, url, params) {
         super(id, url, params)
     }
@@ -708,17 +737,23 @@ class BandedEvenHistogram extends EvenHistogram {
         }
         const self = this
         //find the min an max bar heights
-        var min = binnedData.min
-        var max = binnedData.max
-        const satInterval = (this._params.color.sMax - this._params.color.sMin) / this._params.bins
-        const satMin = this._params.color.sMin
+        var min = null
+        var max = null
+        for(var i in binnedData.data) {
+            if(min == null) {
+                min = binnedData.data[i][1]
+                max = binnedData.data[i][1]
+            }
+            min = binnedData.data[i][1] < min ? binnedData.data[i][1] : min
+            max = binnedData.data[i][1] > max ? binnedData.data[i][1] : max
+        }
+        const satInterval = (this._params.color.aMax - this._params.color.aMin) / max
         binnedData.data.forEach(function(el, idx) {
-            var sat = satMin + (((el[1] - min) / (max - min)) * 100) * satInterval
-            const rgb = self._hsv2rgb(self._params.color.h, sat, self._params.color.v)
+            var sat = self._params.color.aMin + (el[1] * satInterval)
             series.data.push({
                 y: 1,
-                x: idx * binnedData.interval,
-                color: `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`,
+                x:  binnedData.min + (idx * binnedData.interval),
+                color: `rgba(${self._params.color.r}, ${self._params.color.g}, ${self._params.color.b}, ${sat})`,
                 binCount: el[1]
             })
         })
@@ -735,34 +770,8 @@ class BandedEvenHistogram extends EvenHistogram {
         //calculate a mean
         var plotLines = []
         const chartObj = this
-        if(binned.valuesOnly.length > 0) {
-            var mean = binned.valuesOnly.reduce(function(a, b) {return a + b}) / data.length
-            plotLines.push({
-                value: mean,
-                width: 1,
-                color: 'black',
-                zIndex: 2,
-                label: {
-                    text: 'Mean'
-                },
-                events: {
-                    mouseover: function(e) {
-                        //set the label to return to if not already set
-                        if(typeof($(this.label.element).data('lineLabel')) === 'undefined') {
-                            $(this.label.element).data('lineLabel', $(this.label.element).text())
-                        }
-                        $(this.label.element).text(`${mean.toFixed(1)}%`)
-                    },
-                    mouseout: function(e) {
-                        const self = this
-                        setTimeout(function() {
-                            $(self.label.element).text($(self.label.element).data('lineLabel'))
-                        }, 1000)
-                    }
-                }
-            })
-        }
         const self = this
+        var mean = binned.valuesOnly.reduce(function(a, b) {return a + b}) / data.length
         var chart =  {
             chart: {
                 type: 'bar',
@@ -796,7 +805,13 @@ class BandedEvenHistogram extends EvenHistogram {
                 minorTickLength: 0,
                 tickLength: 0,
                 reversed: false,
-                offset: -12
+                offset: -12,
+                plotLines: [{
+                    value: mean,
+                    width: 3,
+                    color: 'black',
+                    zIndex: 5,
+                }]
             },
             yAxis: {
                 min: 0,
@@ -818,10 +833,9 @@ class BandedEvenHistogram extends EvenHistogram {
                 marker: {
                     radius: 10,
                 },
-                color: 'white',
-                name: 'test',
+                color: self._params.point.color,
                 radius: 10,
-                data: [{x: -2.5, y: 0.5}, {x: 47.5, y:0.5}]
+                data: [{x: self._params.point.value, y: 0.5}]
             }],
             plotOptions: {
                 series: {
@@ -837,19 +851,34 @@ class BandedEvenHistogram extends EvenHistogram {
 
 class BandedIndustryDirectorPercentage extends BandedEvenHistogram {
     constructor(id, params) {
-        const URL = './industry/%SICLEVEL%/%ID%?directorRatio=true'
+        const URL = './industry/%SICLEVEL%/?directorRatio=true&join=true'
         var pass = { params }
         super(id, URL, pass)
         //merge in defaults
         const self = this
         this._set_params(this._params, {
+            color: {
+                r: 138,
+                g: 25,
+                b: 25,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
             highcharts: {
                 series: [{
                     name: '% Female Directors'
                 }],
                 tooltip: {
                     formatter: function() {
-                        return `<strong>${this.binCount}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+self._binned.interval}</strong>% female directors`
+                        var x = parseFloat(this.x)
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br>\
+                        have from <br> \
+                        <strong>${x.toFixed(0)}</strong>% to <br>\
+                        <strong>${(x+self._binned.interval).toFixed(0)}</strong>% <br>\ 
+                        female directors` : `This company has <br><strong>${x}% <br>female directors</strong>`
                     }
                 }
             },
@@ -863,5 +892,270 @@ class BandedIndustryDirectorPercentage extends BandedEvenHistogram {
 
     _transform_data() {
        return this._data.directorRatio.items
+    }
+}
+
+class BandedMeanGapPercentage extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?meanGap=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Mean Gap'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> mean paygap from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${x}%</strong> <br> mean pay gap`
+                    }
+                }
+            },
+            color: {
+                r: colors.meanGap.rgb.r,
+                g: colors.meanGap.rgb.g,
+                b: colors.meanGap.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.meanGap.items
+    }
+
+    _draw() {
+        this._params['min'] = parseFloat(this._data.meanGap['min'])
+        this._params['max'] = parseFloat(this._data.meanGap['max'])
+        super._draw()
+    }
+}
+
+class BandedMedianGapPercentage extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?medianGap=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Median Gap'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> median paygap from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${x}%</strong> <br> median pay gap`
+                    }
+                }
+            },
+            color: {
+                r: colors.medianGap.rgb.r,
+                g: colors.medianGap.rgb.g,
+                b: colors.medianGap.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.medianGap.items
+    }
+
+    _draw() {
+        this._params['min'] = parseFloat(this._data.medianGap['min'])
+        this._params['max'] = parseFloat(this._data.medianGap['max'])
+        super._draw()
+    }
+}
+
+class BandedWorkforcePercentage extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?workforceFemale=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Workforce Female'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> employ from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>% <br> women` : `This company has<br> \
+                        <strong>${x}%</strong> <br> female workforce`
+                    }
+                }
+            },
+            color: {
+                r: colors.workforceFemale.rgb.r,
+                g: colors.workforceFemale.rgb.g,
+                b: colors.workforceFemale.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.workforceFemale.items
+    }
+
+    _draw() {
+        this._params['min'] = parseFloat(this._data.workforceFemale['min'])
+        this._params['max'] = parseFloat(this._data.workforceFemale['max'])
+        super._draw()
+    }
+}
+
+class BandedQuartileSkew extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?quartileSkew=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: 'Quartile Skew'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have skew from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong> to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
+                        <strong>${x.toFixed(2)}</strong> <br> skew`
+                    }
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}'
+                    }
+                }
+            },
+            color: {
+                r: colors.quartileSkew.rgb.r,
+                g: colors.quartileSkew.rgb.g,
+                b: colors.quartileSkew.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.quartileSkew.items
+    }
+
+    _draw() {
+        this._params['min'] = parseFloat(this._data.quartileSkew['min'])
+        this._params['max'] = parseFloat(this._data.quartileSkew['max'])
+        super._draw()
+    }
+}
+
+class BandedMeanBonusGap extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?meanBonusGap=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: 'Mean Bonus Gap (%)'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have skew from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong> to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
+                        <strong>${x.toFixed(2)}</strong> <br> skew`
+                    }
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}'
+                    }
+                }
+            },
+            color: {
+                r: colors.quartileSkew.rgb.r,
+                g: colors.quartileSkew.rgb.g,
+                b: colors.quartileSkew.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.meanBonusGap.items
+    }
+
+    _draw() {
+        this._params['min'] = parseFloat(this._data.meanBonusGap['min'])
+        this._params['max'] = parseFloat(this._data.meanBonusGap['max'])
+        super._draw()
     }
 }

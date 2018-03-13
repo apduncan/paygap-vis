@@ -14,7 +14,7 @@ module.exports = router
 async function buildResponse(level, id, response, req) {
   //execute methods to generate and attach any requested data
   for(key in req.query) {
-    if(key in dataFunctions) {
+    if(dataFunctions.hasOwnProperty(key)) {
       response = await dataFunctions[key](level, id, response)
     }
   }
@@ -26,7 +26,7 @@ async function directorRatio(level, id, response) {
   //field relevant field
   var field = constants.sicLevels[level].field
   var query = `SELECT DISTINCT ON(company.co_id) co_id, pc_female FROM paygap.co_director_count NATURAL JOIN \
-  paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE ${field} = $1 AND NOT pc_female IS NULL ORDER BY company.co_id`
+  paygap.company NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic WHERE ${field} = $1 AND NOT pc_female IS NULL ORDER BY company.co_id`
   const { rows } = await db.query(query, [id])
   var items = new Array()
   for(row in rows) {
@@ -43,7 +43,7 @@ async function directorRatio(level, id, response) {
 
 async function meanGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT ON(co_id) co_hash, co_diff_hourly_mean, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+	var query = `SELECT DISTINCT ON(co_id) co_hash, co_diff_hourly_mean, co_id FROM paygap.company NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
 	WHERE ${field} = $1 ORDER BY co_id`
 	const { rows } = await db.query(query, [id])
 	var items = new Array()
@@ -60,13 +60,12 @@ async function meanGap(level, id, response) {
     min: parseFloat(minMax.rows[0]['min']),
     max: parseFloat(minMax.rows[0]['max'])
   }
-  console.log(response)
 	return response
 }
 
 async function medianGap(level, id, response) {
 	var field = constants.sicLevels[level].field
-	var query = `SELECT DISTINCT ON (co_id) co_hash, co_diff_hourly_median, co_id FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+	var query = `SELECT DISTINCT ON (co_id) co_hash, co_diff_hourly_median, co_id FROM paygap.company NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
   WHERE ${field} = $1 ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
@@ -78,20 +77,18 @@ async function medianGap(level, id, response) {
 	}
   //also want to find the global min and max to help histogram plotting
   const minMax = await db.query('SELECT MIN(co_diff_hourly_median) AS min, MAX(co_diff_hourly_median) FROM paygap.company', [])
-  console.log(minMax.rows)
   response['medianGap'] = {
     items: items,
     min: parseFloat(minMax.rows[0]['min']),
     max: parseFloat(minMax.rows[0]['max'])
   }
-  console.log(response)
 	return response
 }
 
 async function workforceFemale(level, id, response) {
 	var field = constants.sicLevels[level].field
   var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, (co_female_lower_band*0.25)+(co_female_middle_band*0.25)+(co_female_upper_band*0.25)+(co_female_upper_quartile*0.25) AS pc_workforce_female FROM paygap.company \
-  NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic \
+  NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
   WHERE ${field} =  $1 ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
@@ -105,7 +102,66 @@ async function workforceFemale(level, id, response) {
   response['workforceFemale'] = {
     items: items,
   }
-  console.log(response)
+	return response
+}
+
+async function quartileSkew(level, id, response) {
+  var field = constants.sicLevels[level].field
+  var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, quartile_skew FROM paygap.company \
+  NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
+  WHERE ${field} =  $1 AND NOT quartile_skew IS NULL ORDER BY co_id`
+  const { rows } = await db.query(query, [id])
+	var items = new Array()
+	for(row in rows) {
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['quartile_skew'])
+    })
+	}
+  //also want to find the global min and max to help histogram plotting
+  response['quartileSkew'] = {
+    items: items,
+  }
+	return response
+}
+
+async function meanBonusGap(level, id, response) {
+  var field = constants.sicLevels[level].field
+  var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, co_diff_bonus_mean FROM paygap.company \
+  NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
+  WHERE ${field} =  $1 ORDER BY co_id`
+  const { rows } = await db.query(query, [id])
+	var items = new Array()
+	for(row in rows) {
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['co_diff_bonus_mean'])
+    })
+	}
+  //also want to find the global min and max to help histogram plotting
+  response['meanBonusGap'] = {
+    items: items,
+  }
+	return response
+}
+
+async function quartileSkew(level, id, response) {
+  var field = constants.sicLevels[level].field
+  var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, quartile_skew FROM paygap.company \
+  NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
+  WHERE ${field} =  $1 AND NOT quartile_skew IS NULL ORDER BY co_id`
+  const { rows } = await db.query(query, [id])
+	var items = new Array()
+	for(row in rows) {
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['quartile_skew'])
+    })
+	}
+  //also want to find the global min and max to help histogram plotting
+  response['quartileSkew'] = {
+    items: items,
+  }
 	return response
 }
 
@@ -158,12 +214,38 @@ async function breadcrumbs(level, id, response) {
   return response
 }
 
+async function mergeLevels(response) {
+  var newResponse = new Object()
+  response.items.forEach(function(element, index) {
+    for(var el in element) {
+      if(el in dataFunctions) {
+        //this is a data object
+        //iterate over and add to a single collection
+        const measure = el
+        //if this measure does not exist create it
+        if(!newResponse.hasOwnProperty(measure)) {
+          newResponse[measure] = {items: [], keys: []}
+        }
+        element[measure].items.forEach(function(element, index) {
+         if(!newResponse[measure].keys.includes(element.id)) {
+           newResponse[measure].items.push(element)
+           newResponse[measure].keys.push(element.id)
+         }
+        })
+      }
+    }
+  })
+  return newResponse
+}
+
 //Make an object containing these functions so the required ones can be called
 var dataFunctions = []
 dataFunctions['directorRatio'] = directorRatio
 dataFunctions['meanGap'] = meanGap
 dataFunctions['medianGap'] = medianGap
 dataFunctions['workforceFemale'] = workforceFemale
+dataFunctions['quartileSkew'] = quartileSkew
+dataFunctions['meanBonusGap'] = meanBonusGap
 
 //Different available routes for this resource
 
@@ -193,6 +275,9 @@ router.get('/:level', async (req, res) => {
     item = await buildResponse(level, id, item, req)
     response.items.push((item))
   }
+  if(req.query.hasOwnProperty('join')) {
+    response = await mergeLevels(response)
+  }
   res.send(response)
 })
 
@@ -202,8 +287,6 @@ router.get('/:level/:id/children', async (req, res) => {
   const { level, id } = req.params
   var childKey = constants.sicLevels[level].drillDown
   var childLevel = constants.sicLevels[childKey]
-  console.log("Child: ")
-  console.log(childLevel)
   const query = await db.query(`SELECT DISTINCT ${childLevel.field} FROM paygap.sic WHERE ${constants.sicLevels[level].field} = $1`, [id])
   var codes = query.rows
   var response_data = new Object()

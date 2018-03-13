@@ -13,8 +13,12 @@ module.exports = router
 
 router.get('/:id', async (req, res) => {
   const { id } = req.params
-  const { rows } = await db.query('SELECT * FROM paygap.company WHERE co_id = $1', [id])
-  res.send(rows[0])
+  const { rows } = await db.query(`SELECT company.*, pc_female FROM paygap.company \
+  LEFT JOIN paygap.co_director_count ON company.co_hash = co_director_count.co_hash \
+  WHERE company.co_id = $1`, [id])
+  var response = rows[0]
+  response = await addSicHeirarchies(response)
+  res.send(response)
 })
 
 router.get('/', async (req, res) => {
@@ -35,7 +39,7 @@ router.get('/', async (req, res) => {
     var splitString = fieldList[i].split('_')
     const table = constants.companyDetails.prefixes[splitString[0]]
     if(table === 'sic') {
-      sicJoin = ' NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic'
+      sicJoin = ' NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic'
     }
     fullFieldList.push(`${table}.${fieldList[i]}`)
   }
@@ -52,9 +56,20 @@ router.get('/', async (req, res) => {
   res.send(response)
 })
 
+async function addSicHeirarchies(company) {
+  const sicRows = await db.query(`SELECT sic.* FROM paygap.company_sic_null NATURAL JOIN paygap.sic WHERE co_hash = $1`, [company.co_hash])
+  var sections = new Array()
+  for(var i in sicRows.rows) {
+    const row = sicRows.rows[i]
+    sections.push(row)
+  }
+  company['sections'] = sections
+  return company
+}
+
 async function addSections(company) {
   //add section information for a given company object
-  const sectionRows = await db.query(`SELECT DISTINCT sic_section, sic_section_desc FROM paygap.company NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic WHERE co_id = $1`, [company.co_id])
+  const sectionRows = await db.query(`SELECT DISTINCT sic_section, sic_section_desc FROM paygap.company NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic WHERE co_id = $1`, [company.co_id])
   var sections = new Array()
   for(var i in sectionRows.rows) {
     const row = sectionRows.rows[i]
