@@ -144,8 +144,12 @@ class EvenHistogram extends AjaxGraph {
     _draw() {
         //turn data into usable form - will differ between implementations
         var data = this._transform_data()
-        //bin the data
-        //take settings from params
+        //set requested outlier handling settings
+        const outlierKey = getOutliers()
+        const outlierSettings = this._params.hasOwnProperty('outlierSettings') ? (this._params.outlierSettings[outlierKey] || false) : false
+        if(outlierSettings !== false) {
+            this._params.outliers = outlierSettings
+        }
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
         this._binned = binned
         //calculate a mean
@@ -229,10 +233,25 @@ class EvenHistogram extends AjaxGraph {
         this._set_params(chart, this._params.highcharts)
         // var chart_obj = Highcharts.chart(this._id, chart)
         $(this._id).highcharts(chart)
+        //set this object as part of data of containing element, and set flag so it can be found
+        $(this._id).data('graph', this)
+        $(this._id).addClass('even-histogram')
     }
 
     _even_bins(data, bins, min, max) {
         //takes an array of object in form { id: id, value: floatpoint }
+        //do outlier removal if requested
+        if(this._params.hasOwnProperty('outliers')) {
+            const min = this._params.outliers.min || false
+            const max = this._params.outliers.max || false
+            const outliers = this._params.outliers.outliers || false
+            if(this._params.outliers === false) {
+                this._params.outliers = {min: this._params.min, max: this._params.max, outliers: false}
+            }
+            data = this._removeOutliers(data, min, max, outliers)
+        } else {
+            this._params.outliers = {min: this._params.min, max: this._params.max, outliers: false}
+        }
         //make an arrays of just he floating points
         var points = new Array()
         for(var idx in data) {
@@ -241,8 +260,11 @@ class EvenHistogram extends AjaxGraph {
         }
         //find min ad max if not specified
         if(typeof(min) === 'undefined' || typeof(max) === 'undefined' || isNaN(min) || isNaN(max)) {
-            min = Math.min.apply(null, points)
-            max = Math.max.apply(null, points)
+            // min = Math.min((this._params.outliers.min || Math.min.apply(null, points)), this._params.min)
+            // max = Math.min((this._params.outliers.max || Math.max.apply(null, points)), this._params.max)
+            min = this._params.outliers.min || Math.min.apply(null, points)
+            max = (this._params.outliers.max || false) !== false ? Math.min(this._params.outliers.max, Math.max.apply(null, points)) : Math.max.apply(null, points)
+            //if we have removed outliers, reset the param min/max for drawing
         }
         //default to 10 bins
         if(typeof(bins) == undefined) {
@@ -279,6 +301,56 @@ class EvenHistogram extends AjaxGraph {
             min: min,
             max: max
         }
+    }
+
+    _removeOutliers(data, absMin, absMax, outliers) {
+        function removeMinMax(data, min, max, idx) {
+            min = min || false
+            max = max || false
+            idx = idx || false
+            var trimmed = new Array()
+            if(max !== false || min !== false) {
+                data.forEach(function(element, index) {
+                    var addFlag = true
+                    const value = idx === false ? element : element[idx]
+                    if(max !== false && value > max) {
+                        addFlag = false
+                    }
+                    if(min !== false && value < min) {
+                        addFlag = false
+                    }
+                    if(addFlag) {
+                        trimmed.push(element)
+                    }
+                })
+            } else {
+                trimmed = data
+            }
+            return trimmed 
+        }
+        function average(data, idx) {
+            //sum
+            idx = idx || false
+            var sum = data.reduce(function(sum, value) {
+                return sum + (idx === false ? value : value[idx])
+            }, 0)
+            return sum / data.length
+        }
+
+        //remove anything above / below absolute min / max (logically impossible values)
+        var pruned = removeMinMax(data, absMin, absMax, 'value')
+        //only remove outliers if flag set
+        if(outliers) {
+            //calculate sd
+            const mean = average(pruned, 'value')
+            const sqdiffmean = average(pruned.map(function(value) {
+                return Math.pow((value['value'] - mean), 2)
+            }))
+            const sd  = Math.sqrt(sqdiffmean)
+            //remove anything over 3SD from mean
+            pruned = removeMinMax(pruned, mean - (3*sd), mean + (3*sd), 'value')
+        }
+        return pruned
     }
 }
 
@@ -411,6 +483,11 @@ class MeanGapMeanSummary extends MeanSummary {
                     },
                     color: '#ff6600'
                 }]
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {min: false, max: 100, outliers: false},
+                outliers: {min: false, max: 100, outliers: true}
             }
         })
     }
@@ -438,6 +515,11 @@ class DirectorRatioMeanSummary extends MeanSummary {
                     endOnTick: true,
                     startOnTick: true
                 }
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {min: 0, max: 100, outliers: false},
+                outliers: {min: 0, max: 100, outliers: true}
             }
         })
     }
@@ -445,7 +527,7 @@ class DirectorRatioMeanSummary extends MeanSummary {
 
 class MedianGapMeanSummary extends MeanSummary {
     constructor(id, params) {
-        const URL = './industry/section/%ID%?medianGap=true'
+        const URL = './industry/%LEVEL%/%ID%?medianGap=true'
         var pass = {params}
         super(id, URL, pass.params)
         const self = this
@@ -460,6 +542,11 @@ class MedianGapMeanSummary extends MeanSummary {
                         }
                     }
                 }]
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {min: false, max: 100, outliers: false},
+                outliers: {min: false, max: 100, outliers: true}
             }
         })
     }
@@ -495,6 +582,19 @@ class IndustryDirectorPercentage extends EvenHistogram {
                     formatter: function() {
                         return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+self._binned.interval}</strong>% female directors`
                     }
+                }
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {
+                    max: 100,
+                    min: 0,
+                    outliers: false
+                },
+                outliers: {
+                    max: 100,
+                    min: 0,
+                    outliers: true
                 }
             },
             bins: 20,
@@ -552,17 +652,15 @@ class IndustryMeanPercentage extends EvenHistogram {
                     }
                 }
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: 0, outliers: false},
+                outliers: {max: 100, min: 0, outliers: true}
+            },
             bins: 30
         })
         //merge in customs
         this._set_params(this._params, params)
-    }
-
-    _draw() {
-        //add min/max to params
-        this._params['min'] = parseFloat(this._data.meanGap['min'])
-        this._params['max'] = parseFloat(this._data.meanGap['max'])
-        super._draw()
     }
 
     _transform_data() {
@@ -612,17 +710,15 @@ class IndustryMedianPercentage extends EvenHistogram {
                     }
                 }
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
             bins: 30
         })
         //merge in customs
         this._set_params(this._params, params)
-    }
-
-    _draw() {
-        //add min/max to params
-        this._params['min'] = parseFloat(this._data.medianGap['min'])
-        this._params['max'] = parseFloat(this._data.medianGap['max'])
-        super._draw()
     }
 
     _transform_data() {
@@ -671,6 +767,11 @@ class IndustryWorkforcePercentage extends EvenHistogram {
                     }
                 }
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: 0, outliers: false},
+                outliers: {max: 100, min: 0, outliers: true}
+            },
             bins: 20,
             min: 0,
             max: 100
@@ -693,6 +794,180 @@ class IndustryWorkforcePercentage extends EvenHistogram {
     }
 }
 
+class IndustryQuartileSkew extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?quartileSkew=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Quartile skew of ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}'
+                    }
+                },
+                series: [{
+                    name: 'Quartile Skew',
+                    color: '#00FF66'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a quartile skew between <strong>${this.x.toFixed(1)}</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}</strong>`
+                    }
+                }
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {max: false, min: false, outliers: false},
+                outliers: {max: false, min: false, outliers: true}
+            },
+            bins: 30
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+        return this._data.quartileSkew.items
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
+class IndustryBonusMeanPercentage extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?meanBonusGap=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Mean bonus pay gap of ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                series: [{
+                    name: 'Mean Bonus Pay Gap (%)',
+                    color: '#00FF66'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a mean bonus pay gap <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}%</strong>`
+                    }
+                }
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
+            bins: 30
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+        return this._data.meanBonusGap.items
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
+class IndustryBonusMedianPercentage extends EvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/%ID%?medianBonusGap=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                chart: {
+                    height: '100%'
+                },
+                yAxis: {
+                    title: 'Count of Companies'
+                },
+                title: {
+                    text: `Median bonus pay gap of ${params.url.sic_industry}`
+                },
+                xAxis: {
+                    labels: {
+                        format: '{value}%'
+                    }
+                },
+                series: [{
+                    name: 'Median Bonus Pay Gap (%)',
+                    color: '#00FF66'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        return `<strong>${this.y}</strong> companies<br> have a median bonus pay gap <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}%</strong>`
+                    }
+                }
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
+            bins: 30
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+        return this._data.medianBonusGap.items
+    }
+
+    set data(data) {
+        //expecting data.data, so construct this
+        this._data = {
+            data: data
+        }
+        this._transform_data()
+        this._draw()
+    }
+}
+
 class BandedEvenHistogram extends EvenHistogram {
     //represents number of items in bin by color shade, rather than bar height
     //and draws a single bar on top (vertically), to represent position of a single company
@@ -700,32 +975,6 @@ class BandedEvenHistogram extends EvenHistogram {
     //                       point: {color: color of point, value: height to draw}
     constructor(id, url, params) {
         super(id, url, params)
-    }
-
-    _hsv2rgb(h, s, v) {
-        //from https://stackoverflow.com/questions/17242144/javascript-convert-hsb-hsv-color-to-rgb-accurately
-        var r, g, b, i, f, p, q, t;
-        if (arguments.length === 1) {
-            s = h.s, v = h.v, h = h.h;
-        }
-        i = Math.floor(h * 6);
-        f = h * 6 - i;
-        p = v * (1 - s);
-        q = v * (1 - f * s);
-        t = v * (1 - (1 - f) * s);
-        switch (i % 6) {
-            case 0: r = v, g = t, b = p; break;
-            case 1: r = q, g = v, b = p; break;
-            case 2: r = p, g = v, b = t; break;
-            case 3: r = p, g = q, b = v; break;
-            case 4: r = t, g = p, b = v; break;
-            case 5: r = v, g = p, b = q; break;
-        }
-        return {
-            r: Math.round(r * 255),
-            g: Math.round(g * 255),
-            b: Math.round(b * 255)
-        };
     }
 
     _colorBands(binnedData) {
@@ -764,6 +1013,11 @@ class BandedEvenHistogram extends EvenHistogram {
         //turn data into usable form - will differ between implementations
         var data = this._transform_data()
         //bin the data
+        const outlierKey = getOutliers()
+        const outlierSettings = this._params.hasOwnProperty('outlierSettings') ? (this._params.outlierSettings[outlierKey] || false) : false
+        if(outlierSettings !== false) {
+            this._params.outliers = outlierSettings
+        }
         //take settings from params
         var binned = this._even_bins(data, this._params.bins, this._params.min, this._params.max)
         this._binned = binned
@@ -882,6 +1136,11 @@ class BandedIndustryDirectorPercentage extends BandedEvenHistogram {
                     }
                 }
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: 0, outliers: false},
+                outliers: {max: 100, min: 0, outliers: true}
+            },
             bins: 20,
             min: 0,
             max: 100
@@ -929,6 +1188,11 @@ class BandedMeanGapPercentage extends BandedEvenHistogram {
             point: {
                 color: 'black'
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
             bins: 20
         })
         //merge in customs
@@ -938,11 +1202,55 @@ class BandedMeanGapPercentage extends BandedEvenHistogram {
     _transform_data() {
        return this._data.meanGap.items
     }
+}
 
-    _draw() {
-        this._params['min'] = parseFloat(this._data.meanGap['min'])
-        this._params['max'] = parseFloat(this._data.meanGap['max'])
-        super._draw()
+class BandedMedianBonusGap extends BandedEvenHistogram {
+    constructor(id, params) {
+        const URL = './industry/%SICLEVEL%/?medianBonusGap=true&join=true'
+        var pass = { params }
+        super(id, URL, pass)
+        //merge in defaults
+        const self = this
+        this._set_params(this._params, {
+            highcharts: {
+                series: [{
+                    name: '% Median Bonus Gap'
+                }],
+                tooltip: {
+                    formatter: function() {
+                        var x = parseFloat(this.x)
+                        var mult = (x && x / Math.abs(x)) 
+                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> median bonus gap from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
+                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${x}%</strong> <br> median bonus gap`
+                    }
+                }
+            },
+            color: {
+                r: colors.meanGap.rgb.r,
+                g: colors.meanGap.rgb.g,
+                b: colors.meanGap.rgb.b,
+                aMin: 0,
+                aMax: 1
+            },
+            point: {
+                color: 'black'
+            },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
+            bins: 20
+        })
+        //merge in customs
+        this._set_params(this._params, params)
+    }
+
+    _transform_data() {
+       return this._data.medianBonusGap.items
     }
 }
 
@@ -980,6 +1288,11 @@ class BandedMedianGapPercentage extends BandedEvenHistogram {
             point: {
                 color: 'black'
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
             bins: 20
         })
         //merge in customs
@@ -988,12 +1301,6 @@ class BandedMedianGapPercentage extends BandedEvenHistogram {
 
     _transform_data() {
        return this._data.medianGap.items
-    }
-
-    _draw() {
-        this._params['min'] = parseFloat(this._data.medianGap['min'])
-        this._params['max'] = parseFloat(this._data.medianGap['max'])
-        super._draw()
     }
 }
 
@@ -1031,7 +1338,14 @@ class BandedWorkforcePercentage extends BandedEvenHistogram {
             point: {
                 color: 'black'
             },
-            bins: 20
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: 0, outliers: false},
+                outliers: {max: 100, min: 0, outliers: true}
+            },
+            bins: 20,
+            min: 0,
+            max: 100
         })
         //merge in customs
         this._set_params(this._params, params)
@@ -1039,12 +1353,6 @@ class BandedWorkforcePercentage extends BandedEvenHistogram {
 
     _transform_data() {
        return this._data.workforceFemale.items
-    }
-
-    _draw() {
-        this._params['min'] = parseFloat(this._data.workforceFemale['min'])
-        this._params['max'] = parseFloat(this._data.workforceFemale['max'])
-        super._draw()
     }
 }
 
@@ -1087,6 +1395,11 @@ class BandedQuartileSkew extends BandedEvenHistogram {
             point: {
                 color: 'black'
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: false, min: false, outliers: false},
+                outliers: {max: false, min: false, outliers: true}
+            },
             bins: 20
         })
         //merge in customs
@@ -1095,12 +1408,6 @@ class BandedQuartileSkew extends BandedEvenHistogram {
 
     _transform_data() {
        return this._data.quartileSkew.items
-    }
-
-    _draw() {
-        this._params['min'] = parseFloat(this._data.quartileSkew['min'])
-        this._params['max'] = parseFloat(this._data.quartileSkew['max'])
-        super._draw()
     }
 }
 
@@ -1121,15 +1428,15 @@ class BandedMeanBonusGap extends BandedEvenHistogram {
                         var x = parseFloat(this.x)
                         var mult = (x && x / Math.abs(x)) 
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
-                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have skew from<br> \
-                        <strong>${parseFloat(x).toFixed(1)}</strong> to <br>\
+                        return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have gap in mean bonus pay from<br> \
+                        <strong>${parseFloat(x).toFixed(1)}%</strong> to <br>\
                         <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
-                        <strong>${x.toFixed(2)}</strong> <br> skew`
+                        <strong>${x.toFixed(2)}%</strong> <br>gap in mean bonus pay`
                     }
                 },
                 xAxis: {
                     labels: {
-                        format: '{value}'
+                        format: '{value}%'
                     }
                 }
             },
@@ -1143,6 +1450,11 @@ class BandedMeanBonusGap extends BandedEvenHistogram {
             point: {
                 color: 'black'
             },
+            outlierSettings: {
+                off: false,
+                impossible: {max: 100, min: false, outliers: false},
+                outliers: {max: 100, min: false, outliers: true}
+            },
             bins: 20
         })
         //merge in customs
@@ -1151,11 +1463,5 @@ class BandedMeanBonusGap extends BandedEvenHistogram {
 
     _transform_data() {
        return this._data.meanBonusGap.items
-    }
-
-    _draw() {
-        this._params['min'] = parseFloat(this._data.meanBonusGap['min'])
-        this._params['max'] = parseFloat(this._data.meanBonusGap['max'])
-        super._draw()
     }
 }

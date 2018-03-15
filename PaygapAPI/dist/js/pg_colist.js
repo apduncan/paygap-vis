@@ -44,7 +44,7 @@ class CompanyList {
         <th class="sort even-width" data-sort="co_diff_hourly_median_sort">Median Gap</th> \
         <th class="sort even-width" data-sort="pc_female">Female Directors</td> \
         <th class="sort even-width" data-sort="workforce_female">% Workforce Female</th> \
-        <th class="even-width">Quartiles</th> \
+        <th class="sort even-width" data-sort="quartile_skew_sort">Quartiles</th> \
         </tr></thead> \
         <tbody class="list co-list"></tbody></table>`).appendTo(this._elements.container)
         const tableBody = $(table).find('tbody')
@@ -90,6 +90,7 @@ class CompanyList {
             data.items[idx]['index'] = idx
             data.items[idx]['co_diff_hourly_mean_sort'] = this._sortNumber(item.co_diff_hourly_mean)
             data.items[idx]['co_diff_hourly_median_sort'] = this._sortNumber(item.co_diff_hourly_median)
+            data.items[idx]['quartile_skew_sort'] = this._sortNumber(item.quartile_skew)
             companyList.add(data.items[idx])
             this._drawCompanyLine($(table).find('.co-item').last())
         }

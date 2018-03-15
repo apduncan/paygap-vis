@@ -419,6 +419,20 @@ def fetch_co_sic():
         except:
             print('Error fetching for %s' % [co._data['co_name']])
 
+def set_sic_min_max():
+    sicFields = {'sic_section' : 'section', 'sic_industry' : 'industry', 'sic_division' : 'division', 'sic_group' : 'group'}
+    #connect
+    conn = psycopg2.connect(
+        "dbname=%s user=%s password=%s host=%s" % \
+        (passwords.DB_DB, passwords.DB_USER, passwords.DB_PASS, passwords.DB_HOST))
+    #Set to the right schema
+    cur = conn.cursor()
+    query = "SET search_path TO '%s';" % (passwords.DB_SCHEMA)
+    cur.execute(query)
+    conn.commit()
+
+
+
 '''
 for ONE in Company.get_all():
     print("Fetching directors for %s" % [ONE._data['co_name']])

@@ -5,6 +5,9 @@ class CompanyProfile {
             container: container
         }
         this._fetchAndDraw()
+        //register as controller of this div
+        $(container).attr('data-controlled', true)
+        $(container).data('controller', this)
     }
 
     _fetchAndDraw() {
@@ -39,9 +42,10 @@ class CompanyProfile {
         var bars = [
             {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)'},
             {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)'},
+            {class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)'},
+            {class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)'},
             {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)'},
-            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew'},
-            {class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)'}
+            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew'}
         ]
         if(!isNaN(parseFloat(this.data.pc_female))){
             bars.push({class: BandedIndustryDirectorPercentage, value: this.data.pc_female, title: 'Female Directors (%)'})
@@ -65,6 +69,7 @@ class CompanyProfile {
                 }
             })
             thisBar.fetchAndDraw()
+            $(`#${id}`).css('order', i)
             measureBars.push(stack)
         }
         //set all header to be the same height
@@ -74,26 +79,10 @@ class CompanyProfile {
         })
         $('.profile-bar-header').height(maxHeader)
         this.measureBars = measureBars
-        /*const title = $(`<div class="section-title">${this.data.co_name}</div><div id="testo" style="width: 7vw; height: 650px" class="vertical-bar-histo"></div><div id="testo2" style="width: 7vw; height: 650px" class="vertical-bar-histo"></div></div>`).appendTo(this.elements.container)
-        const ohno = new BandedIndustryDirectorPercentage('#testo', {
-            url: {
-                sicLevel: 'section',
-                id: 'Q'
-            },
-            point: {
-                value: this.data.pc_female 
-            }
-        })
-        ohno.fetchAndDraw()
-        const ohno2 = new BandedMeanGapPercentage('#testo2', {
-            url: {
-                sicLevel: 'section',
-                id: 'Q'
-            },
-            point: {
-                value: this.data.co_diff_hourly_mean
-            }
-        })
-        ohno2.fetchAndDraw()*/
+    }
+
+    redraw() {
+        $(this.elements.container).empty()
+        this._draw()
     }
 }

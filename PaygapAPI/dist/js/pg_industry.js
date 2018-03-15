@@ -62,7 +62,9 @@ class IndustryExplorer {
                     title: 'UK Gender Pay Gap Reporting 2017/8',
                     url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
                 },
-                draw: this._drawMeanGap
+                draw: this._drawMeanGap,
+                min: false,
+                max: 100
             },
             medianGap: {
                 url: 'medianGap',
@@ -74,7 +76,23 @@ class IndustryExplorer {
                     title: 'UK Gender Pay Gap Reporting 2017/8',
                     url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
                 },
-                draw: this._drawMedianGap
+                draw: this._drawMedianGap,
+                min: false,
+                max: 100
+            },
+            bonusMeanGap: {
+                url: 'meanBonusGap',
+                name: '% Mean Bonus Pay Gap',
+                explain: 'This is the difference between the mean bonus paid to all females and all males, expressed as a % of male mean bonus pay. \
+                A gap of 50% shows that mean bonus pay for men is 50% higher than for women \
+                A negative number indicates mean pay for women is higher than for men.',
+                source: {
+                    title: 'UK Gender Pay Gap Reporting 2017/8',
+                    url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
+                },
+                draw: this._drawBonusMeanGap,
+                min: false,
+                max: 100
             },
             workforceFemale: {
                 url: 'workforceFemale',
@@ -85,7 +103,9 @@ class IndustryExplorer {
                     url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
                 },
  
-                draw: this._drawWorkforceFemale
+                draw: this._drawWorkforceFemale,
+                min: 0,
+                max: 100
             },
             directorRatio: {
                 url: 'directorRatio',
@@ -99,7 +119,26 @@ class IndustryExplorer {
                     title: 'Companies House',
                     url: 'https://www.gov.uk/government/organisations/companies-house'
                 },
-                draw: this._drawDirectorRatio
+                draw: this._drawDirectorRatio,
+                min: 0,
+                max: 100
+            },
+            quartileSkew: {
+                url: 'quartileSkew',
+                name: 'Quartile Skew',
+                explain: 'A measure of which pay quartiles tend to have more women. <br>\
+                A positive value indicates women in this company tend to be in the lower payer quartiles. A higher number means a more pronounced skew this direction. <br> \
+                Negative values indicate the opposite, that women in this company tend to be in the upper quartiles. A lower (-2 being loer than -1) means a more pronounced skew <br> \
+                The calculation of skew is taken from <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35b.htm">this page</a>, \
+                and the population skew formula used. Each quartile is treated as being made up of 100 data points, and women in\
+                 that quartile assigned value 1, 2, 3, or 4 depending on quartile.',
+                source: {
+                    title: 'Companies House',
+                    url: 'https://www.gov.uk/government/organisations/companies-house'
+                },
+                draw: this._drawQuartileSkew,
+                min: false,
+                max: false
             }
         }
         //define default measure
@@ -152,8 +191,86 @@ class IndustryExplorer {
             up: upButton,
             breadcrumbs: breadcrumbs
         }
+        //register this as the controller for this div
+        $(id).data('controller', this)
+        //flag this as having a controller
+        $(id).attr('data-controlled', true)
         this._drawLevel(startLevel)
         this._buttonCheck()
+    }
+
+    _minMax(data) {
+        //find the min an max for the level currently being looked at
+        //method needed depends on level of outlier / incorrect value filtering
+        function removeMinMax(data, min, max, idx) {
+            min = min || false
+            max = max || false
+            idx = idx || false
+            var trimmed = new Array()
+            if(max !== false || min !== false) {
+                data.forEach(function(element, index) {
+                    var addFlag = true
+                    const value = idx === false ? element : element[idx]
+                    if(max !== false && value > max) {
+                        addFlag = false
+                    }
+                    if(min !== false && value < min) {
+                        addFlag = false
+                    }
+                    if(addFlag) {
+                        trimmed.push(element)
+                    }
+                })
+            } else {
+                trimmed = data
+            }
+            return trimmed 
+        }
+        function average(data, idx) {
+            //sum
+            idx = idx || false
+            var sum = data.reduce(function(sum, value) {
+                return sum + (idx === false ? value : value[idx])
+            }, 0)
+            return sum / data.length
+        }
+
+        const outliers = getOutliers()
+        var min = null
+        var max = null
+        //iterate through each child, and prune as appropriate.
+        //then take min max, change if needed
+        for(var i in data.items) {
+            var measure = data.items[i][this._currentMeasure.url].items
+            if(outliers !== 'off') {
+                const absMin = this._currentMeasure.min
+                const absMax = this._currentMeasure.max
+                measure = removeMinMax(measure, absMin, absMax, 'value')
+            }
+            if(outliers === 'outliers') {
+                //calculate sd
+                const mean = average(measure, 'value')
+                const sqdiffmean = average(measure.map(function(value) {
+                    return Math.pow((value['value'] - mean), 2)
+                }))
+                const sd  = Math.sqrt(sqdiffmean)
+                //remove anything over 3SD from mean
+                measure = removeMinMax(measure, mean - (3*sd), mean + (3*sd), 'value')
+            }
+            //build a data only array
+            const onlyData = measure.map(function(value, index) {
+                return value['value']
+            })
+            const arrMin = onlyData.reduce(function(a, b) {
+                return a === null ? b : Math.min(a, b)
+            }, null)
+            const arrMax = onlyData.reduce(function(a, b) {
+                return a === null ? b : Math.max(a, b)
+            }, null)
+            min = min == null ? arrMin : arrMin < min ? arrMin : min 
+            max = max == null ? arrMax : arrMax > max ? arrMax : max 
+        }
+        return {min: min, max: max}
     }
     
     _pinGraph(id) {
@@ -275,7 +392,7 @@ class IndustryExplorer {
         }
     }
 
-    _drawDirectorRatio(item, index, id) {
+    _drawDirectorRatio(item, index, id, min, max) {
        var meanLabel = [{
             label: {
                 text: 'Mean'
@@ -310,12 +427,14 @@ class IndustryExplorer {
                 xAxis: {
                     plotLines: meanLabel
                 }
-            }
+            },
+            min: min,
+            max: max
         })
         chart.fetchAndDraw()
     }
 
-    _drawMeanGap(item, index, id) {
+    _drawMeanGap(item, index, id, min, max) {
         var meanLabel = [{
             label: {
                 text: 'Mean'
@@ -350,12 +469,14 @@ class IndustryExplorer {
                 xAxis: {
                     plotLines: meanLabel
                 }
-            }
+            },
+            min: min,
+            max: max
         })
         chart.fetchAndDraw()
     }
 
-    _drawMedianGap(item, index, id) {
+    _drawMedianGap(item, index, id, min, max) {
         var meanLabel = [{
             label: {
                 text: 'Mean'
@@ -390,12 +511,14 @@ class IndustryExplorer {
                 xAxis: {
                     plotLines: meanLabel
                 }
-            }
+            },
+            min: min,
+            max: max
         })
         chart.fetchAndDraw()
     }
 
-    _drawWorkforceFemale(item, index, id) {
+    _drawWorkforceFemale(item, index, id, min, max) {
         var meanLabel = [{
             label: {
                 text: 'Mean'
@@ -430,24 +553,111 @@ class IndustryExplorer {
                 xAxis: {
                     plotLines: meanLabel
                 }
+            },
+            min: min,
+            max: max
+        })
+        chart.fetchAndDraw()
+    }
+
+    _drawQuartileSkew(item, index, id) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
             }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryQuartileSkew('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            },
+            min: min,
+            max: max
         })
         chart.fetchAndDraw()
     }
     
+    _drawBonusMeanGap(item, index, id, min, max) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryBonusMeanPercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            },
+            min: min,
+            max: max
+        })
+        chart.fetchAndDraw()
+    }
+
     _drawLevel(level, id) {
         //compose url to request items at the required level
         var url
         if(typeof(id) === 'undefined' || id === null) {
-            url = `./industry/${level}`
+            url = `./industry/${level}?${this._currentMeasure.url}=true`
         } else {
-            url = `./industry/${level}/${id}/children` 
+            url = `./industry/${level}/${id}/children?${this._currentMeasure.url}=true` 
         }
         //request and draw
         const self = this
         $.ajax(url)
         .done(function(data) {
             //draw breadcrumbs
+            const minMax = self._minMax(data)
             self._writeBreadcrumbs(data)
             //set parentId so it is possible to go up
             self._currentLevel['parentId'] = data.description.parentId
@@ -467,7 +677,7 @@ class IndustryExplorer {
                 var div = `<div id="contain_${id}" class="small-card card ${obj.description.level.drillDown !== null ? 'interactable-card' : ''}">
                 <div class="title" id="link_${id}"><div id="pin_${id}" class="pin interactable"><img src="./img/pin.png"></div>
                 <div id="list_${id}" class="pin interactable"><img src="./img/list.png"></div>${obj.description.name}</div>
-                <div id="${id}"></div>
+                <div id="${id}" class="explorer-graph"></div>
                 </div>`
                 $(self._elements.graphs).append(div)
                 $(`#pin_${id}`).data('pinId', `#contain_${id}`)
@@ -499,11 +709,16 @@ class IndustryExplorer {
                     })
                 }
                 //create a chart for this
-                self._currentMeasure.draw(obj, item, id)
+                self._currentMeasure.draw(obj, item, id, minMax.min, minMax.max)
             }  
         })
         .fail(function(one, two, three) {
             console.log('OH NO')
         })
+    }
+
+    redraw() {
+        //redraw currently level
+        this._drawLevel(this._currentLevel.level, this._currentLevel.id || null)
     }
 }

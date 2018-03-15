@@ -17,6 +17,7 @@ body {
     font-family: 'Helvetica', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
     font-size: medium;
     background-color: rgb(245, 245, 245);
+    margin: 0;
 }
 a:link {
     text-decoration: none;
@@ -27,6 +28,41 @@ a:visited {
 }
 a:hover {
     color: green;
+}
+#data-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin: 1ex;
+}
+div.layout-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+div.layout-stack > div:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.small-normal-font {
+    font-family: 'Helvetica', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: small;
+    font-weight: normal;
+    letter-spacing: normal;
+}
+/*HEADER STYLING*/
+header {
+    background: rgb(123, 73, 173);
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: x-large;
+    font-weight: bold;
+    color: white;
+    padding: 1ex;
+    letter-spacing: 0.1ex;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
 }
 /*INPUT TYPE STYLES*/
 button {
@@ -186,6 +222,7 @@ div.section-title {
     font-family: Georgia, 'Times New Roman', Times, serif;
     font-size: x-large; 
     letter-spacing: 0.2ex;
+    margin-bottom: 0.2ex;
 }
 .button-height {
     height: 32px;

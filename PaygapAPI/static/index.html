@@ -15,7 +15,7 @@
         <script src="dist/js/pg_industry.js"></script>
         <script src="dist/js/pg_colist.js"></script>
         <script src="dist/js/pg_coprofile.js"></script>
-        <script src="test.js"></script>
+        <script src="start.js"></script>
         <link href="dist/css/paygap.css" rel="StyleSheet" type="text/css" media="all">
         <link href="dist/css/jquery-ui.min.css" rel="StyleSheet" type="text/css" media="all">
     </head>
@@ -23,6 +23,18 @@
         <!---<h1>Typeahead Test</h1>
         <input id='typebox' class="typeahead" type="text" placeholder="Company Name">
         <h3>Percentage of Female Directors by Section</h3>-->
-        <div id="data-container"></div>
+        <div class="layout-stack">
+            <header>
+                <div>UK Gender Pay Gap Reporting 2017/18</div>
+                <div class="small-normal-font">
+                    <div class="radio-toggle" id="outlier-select">
+                        <input type="radio" name="outlier-select" id="outlier-off" value="off"><label for="outlier-off" class="button-height"><span class="radio-label">Show All</span></label><input type="radio" name="outlier-select" id="outlier-impossible" value="impossible" checked><label for="outlier-impossible" class="button-height"><span class="radio-label">Hide Impossible Values</span></label><input type="radio" name="outlier-select" id="outlier-outlier" value="outliers"><label for="outlier-outlier" class="button-height"><span class="radio-label">Hide Impossible Values & Outliers</span></label>
+                    </div>
+                </div>
+            </header>
+            <div>
+                <div id="data-container"></div>
+            </div>
+        </div>
     </body>
 </html>
