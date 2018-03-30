@@ -184,6 +184,9 @@ class EvenHistogram extends AjaxGraph {
         }
         const self = this
         var chart =  {
+            credits: {
+                enabled: false
+            },
             chart: {
                 type: 'column',
             },

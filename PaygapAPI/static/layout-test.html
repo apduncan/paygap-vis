@@ -1,0 +1,50 @@
+<html>
+    <head>
+        <style>
+            .container {
+                display: flex;
+                flex-direction: row;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .two-box-split {
+                flex: 1;
+                display: flex;
+                flex-direction: row;
+                border: thin blue solid;
+            }
+            .max-50 { 
+                display: flex;
+                flex-direction: row;
+                overflow-x: scroll;
+                max-width: 50%;
+            }
+            .max-50 > div {
+                border: thin green dashed;
+                width: 200px;
+                max-width: 200px;
+                min-width: 200px;
+                height: 100%;
+            }
+            .fill {
+                border: thin red solid;
+                flex-grow: 1;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="two-box-split">
+                <div class="max-50">
+                    <div>1</div>
+                    <div>2</div>
+                    <!-- <div>3</div>
+                    <div>4</div> -->
+                </div>
+                <div class="fill">
+                    Fill content
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
