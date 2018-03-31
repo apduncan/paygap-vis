@@ -9,6 +9,7 @@ import chwrapper
 import psycopg2
 import passwords
 from genderize import Genderize
+import requests
 
 class Entity(ABC):
     '''Abstract class which can handle storing / retrieving'''
@@ -132,7 +133,7 @@ class Company(Entity):
     _chclient = chwrapper.Search(access_token=passwords.CH_KEY)
     #mapping changed on 13-02-2018, csv changed field names
     #_mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPayPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleMedianBonusPayPercent', 'co_female_median_bonus': 'FemaleMedianBonusPayPercent', 'co_male_lower_band': 'MaleLowerPayBand', 'co_female_lower_band': 'FemaleLowerPayBand', 'co_male_middle_band': 'MaleMiddlePayBand', 'co_female_middle_band': 'FemaleMiddlePayBand', 'co_male_upper_band': 'MaleUpperPayBand', 'co_female_upper_band': 'FemaleUpperPayBand', 'co_male_upper_quartile': 'MaleUpperQuartilePayBand', 'co_female_uppdate_quartile': 'FemaleUpperQuartilePayBand', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
-    _mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleBonusPercent', 'co_female_median_bonus': 'FemaleBonusPercent', 'co_male_lower_band': 'MaleLowerQuartile', 'co_female_lower_band': 'FemaleLowerQuartile', 'co_male_middle_band': 'MaleLowerMiddleQuartile', 'co_female_middle_band': 'FemaleLowerMiddleQuartile', 'co_male_upper_band': 'MaleUpperMiddleQuartile', 'co_female_upper_band': 'FemaleUpperMiddleQuartile', 'co_male_upper_quartile': 'MaleTopQuartile', 'co_female_uppdate_quartile': 'FemaleTopQuartile', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
+    _mapping = {'co_name': 'EmployerName', 'co_address_csv': 'Address', 'co_number': 'CompanyNumber', 'co_sic_codes_csv': 'SicCodes', 'co_diff_hourly_mean': 'DiffMeanHourlyPercent', 'co_diff_hourly_median': 'DiffMedianHourlyPercent', 'co_diff_bonus_mean': 'DiffMeanBonusPercent', 'co_diff_bonus_median': 'DiffMedianBonusPercent', 'co_male_median_bonus': 'MaleBonusPercent', 'co_female_median_bonus': 'FemaleBonusPercent', 'co_male_lower_band': 'MaleLowerQuartile', 'co_female_lower_band': 'FemaleLowerQuartile', 'co_male_middle_band': 'MaleLowerMiddleQuartile', 'co_female_middle_band': 'FemaleLowerMiddleQuartile', 'co_male_upper_band': 'MaleUpperMiddleQuartile', 'co_female_upper_band': 'FemaleUpperMiddleQuartile', 'co_male_upper_quartile': 'MaleTopQuartile', 'co_female_upper_quartile': 'FemaleTopQuartile', 'co_link': 'CompanyLinkToGPGInfo', 'co_responsible_person': 'ResponsiblePerson'}
 
     def __init__(self):
         super().__init__()
@@ -339,17 +340,21 @@ class Genderiser:
         else:
             #Request info from genderize.io
             print("Requesting from genderize.io")
-            response = Genderize().get([name], country_id='gb')
+            #response = Genderize().get([name], country_id='gb')
+            #genderize library giving ssl error
+            response = requests.get('https://api.genderize.io/', params={'name': name}, verify=False)
+            print(response.url)
+            response = response.json()
             time.sleep(0.3)
-            if response[0]['gender']:
-                response = response[0]
+            if response['gender']:
+                # response = response[0]
                 row = {'g_name' : response['name'], 'g_gender' : response['gender'], 'g_prob' : response['probability'], 'g_count' : response['count']}
                 gender = Gender.from_row(row)
                 gender.save()
                 self.names[row['g_name']] = gender
                 return gender
             else:
-                response = response[0]
+                # response = response[0]
                 row = {'g_name' : response['name'], 'g_gender' : 'U', 'g_prob' : None, 'g_count' : None}
                 gender = Gender.from_row(row)
                 gender.save()
@@ -431,8 +436,6 @@ def set_sic_min_max():
     cur.execute(query)
     conn.commit()
 
-
-
 '''
 for ONE in Company.get_all():
     print("Fetching directors for %s" % [ONE._data['co_name']])
@@ -449,7 +452,13 @@ print(errors)
 '''
 
 if __name__ == "__main__":
-    fetch_co_sic()
+#    fetch_co_sic()
+    # cos = Company.all_from_csv('../PayGap-31032018.csv')
+    # for co in cos:
+    #     co.save()
+    # get_all_directors()
+    # gender_all_directors()
+    fetch_co_sic()    
 '''
 for company in companies:
     for director in company.directors:

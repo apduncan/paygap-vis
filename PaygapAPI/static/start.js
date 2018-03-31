@@ -7,11 +7,17 @@ $(document).ready(function() {
     $('input[name=outlier-select]').change(function() {
         $('[data-controlled=true]').data('controller').redraw()
     })
-    var iCo = new CompanyProfile($('#data-container'), 3)
+    //var iCo = new CompanyProfile($('#data-container'), 875)
     //var iExplore = new IndustryExplorer('#data-container')
-    //var list = new CompanyList('#data-container', '#imagined', {
-    //     level: 'section',
-    //     id: 'Q',
-    //     details: true
-    // })
+    //open at search
+    var iSearch = new CompanySearch('#data-container')
+    iSearch.fetchAndDraw()
+    //add handlers for links to change section
+    $('#link-search').click(function() {
+        const search = new CompanySearch('#data-container')
+        search.fetchAndDraw()
+    })
+    $('#link-explore').click(function() {
+        const explore = new IndustryExplorer('#data-container')
+    })
 })

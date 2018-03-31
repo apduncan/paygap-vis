@@ -50,7 +50,7 @@ class CompanyList {
         const tableBody = $(table).find('tbody')
         //add template line
         const template = $(`<tr id="template-colist" class="co-item"> \
-        <td class="co_name"></td> \
+        <td><a href="" class="co_name"></a></td> \
         <td class="sic_section"><div class="icon"></div></td> \
         <td class="co_public"></td>
         <td class="co_diff_hourly_mean"></td> \
@@ -131,6 +131,7 @@ class CompanyList {
         }
         return sortStr
     }
+
     _drawCompanyLine(element) {
         //get index
         const index = parseInt($(element).data('index'))
@@ -169,6 +170,16 @@ class CompanyList {
         this._drawMeanSummary(element, 'co_diff_hourly_mean', 'meangap', index, MeanGapMeanSummary)
         this._drawMeanSummary(element, 'co_diff_hourly_median', 'mediangap', index, MedianGapMeanSummary)
         this._drawMeanSummary(element, 'pc_female', 'pcfemale', index, DirectorRatioMeanSummary)
+        //associate event handler with name link
+        const id = this._data.items[index].co_id
+        const self = this
+        $(element).find('a.co_name').click(function(e) {
+            //create a company profile in the linkout element
+            const coProfile = new CompanyProfile(self._linkOutId, id)
+            //delete modal div
+            $('.w3-modal').remove()
+            return false    
+        })
     }
     
     _drawMeanSummary(element, dbField, dataField, index, graphClass) {

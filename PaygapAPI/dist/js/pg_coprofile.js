@@ -41,17 +41,22 @@ class CompanyProfile {
         this.elements.barContainer = $(`<div class="profile-bar-container"></div>`).appendTo(this.elements.split)
         this.elements.detailContainer = $(`<div class="profile-detail-container"></div>`).appendTo(this.elements.split)
         this.elements.detailHeader = $(`<div class="profile-detail-title">Test</div>`).appendTo(this.elements.detailContainer)
+        this.elements.detailScroller = $(`<div class="profile-detail-scroller"></div>`).appendTo(this.elements.detailContainer)
         //draw each of the bars
         var bars = [
-            {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)'},
-            {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)'},
-            {class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)'},
-            {class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)'},
-            {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)'},
-            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew'}
+            {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)', measure: 'co_diff_hourly_mean'},
+            {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)', measure: 'co_diff_hourly_median'},
+            // {class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean'},
+            // {class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)', measure: 'co_diff_bonus_median'},
+            {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)', measure: 'workforce_female'},
+            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew'}
         ]
+        if(this.data.co_male_median_bonus > 0 || this.data.co_female_median_bonus > 0) {
+            bars.push({class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean'})
+            bars.push({class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)', measure: 'co_diff_bonus_median'})
+        }
         if(!isNaN(parseFloat(this.data.pc_female))){
-            bars.push({class: BandedIndustryDirectorPercentage, value: this.data.pc_female, title: 'Female Directors (%)'})
+            bars.push({class: BandedIndustryDirectorPercentage, value: this.data.pc_female, title: 'Female Directors (%)', measure: 'pc_female'})
         }
         var measureBars = new Array() 
         for(var i in bars) {
@@ -74,6 +79,11 @@ class CompanyProfile {
             thisBar.fetchAndDraw()
             $(`#${id}`).css('order', i)
             $(`#${id}`).data('natural-order', i)
+            //event handler to display relevant details for each bar
+            const self = this
+            $(stack).click(function() {
+                self._drawDetail(bar)
+            })
             measureBars.push(stack)
         }
         //set all header to be the same height
@@ -95,41 +105,44 @@ class CompanyProfile {
             })
         
         //draw an initial level of detail
-        //FIXED ONLY FOR TESTING
-        this._drawDetail('co_diff_hourly_mean', 'Hourly Mean DIff')
+        this._currentMeasure = this._currentMeasure || bars[0]
+        this._drawDetail(this._currentMeasure)
     }
 
-    _drawDetail(measure, title) {
+    _drawDetail(bar) {
         //for each sic code, draw a histogram showing the companies position
+        this._currentMeasure = bar
         const measures = {
             co_diff_hourly_mean: IndustryMeanPercentage,
             co_diff_hourly_median: IndustryMedianPercentage,
             co_diff_bonus_mean: IndustryBonusMeanPercentage,
             co_diff_bonus_median: IndustryBonusMedianPercentage,
-            workforce_femake: IndustryWorkforcePercentage,
+            workforce_female: IndustryWorkforcePercentage,
             quartile_skew: IndustryQuartileSkew,
             pc_female: IndustryDirectorPercentage
         }
+        const measure = bar.measure
+        const value = bar.value
+        const title = bar.title
         const fields = [
-            'industry', 'section', 'group', 'division'
+            'industry', 'section', 'division', 'group' 
         ]
         //set the top title
         $(this.elements.detailHeader).text(title)
-        //scrolling section to make nice single page
-        const scroller = $(`<div class="profile-detail-scroller"></div>`).appendTo(this.elements.detailContainer)
+        $(this.elements.detailScroller).empty()
         //loop through sic codes and draw summaries for each one
         for(var i in this.data.sections) {
             //use sic code description as title
             const section = this.data.sections[i]
-            $(scroller).append(`<div class="section-title">${section.sic_code_desc}</div>`)
+            $(this.elements.detailScroller).append(`<div class="subsection-title">${section.sic_code_desc}</div>`)
             //make a flex container for the graphs to go in
-            const graphContainer = $(`<div class="profile-detail-graphs"></div>`).appendTo(scroller)
+            const graphContainer = $(`<div class="profile-detail-graphs"></div>`).appendTo(this.elements.detailScroller)
             //loop through levels and draw each one
             for(var j in fields) {
                 const level = fields[j]
                 const field = `sic_${level}`
                 const desc= `${field}_desc` 
-                const id = `detail${j}`
+                const id = `detail${i}${j}`
                 const graphBox = $(`<div class="profile-detail-graph"></div>`).appendTo(graphContainer)
                 const graphTitle = $(`<div class="title">${section[desc]}</div>`).appendTo(graphBox)
                 const graphDiv = $(`<div id="${id}" class="graph"></div>`).appendTo(graphBox)
@@ -139,6 +152,7 @@ class CompanyProfile {
                         sicLevel: level,
                         id: section[field]
                     },
+                    point: bar.value,
                     highcharts: {
                         title: {
                             text: ''

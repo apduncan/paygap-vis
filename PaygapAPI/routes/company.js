@@ -21,6 +21,14 @@ router.get('/:id', async (req, res) => {
   res.send(response)
 })
 
+router.get('/name/:search', async(req, res) => {
+  const { search } = req.params
+  const like = `%${search.toUpperCase()}%`
+  const { rows } = await db.query(`SELECT company.co_name, company.co_id FROM paygap.company \
+  WHERE UPPER(company.co_name) LIKE $1`, [like])
+  res.send(rows)
+})
+
 router.get('/', async (req, res) => {
   //should be passing us an array of id's to get which are in list query
   const { list, level, id } = req.query
@@ -85,6 +93,7 @@ async function addSections(company) {
 async function getFromList(list, response, query) {
   response['items'] = new Array()
   for(var id in list) {
+    console.log(`${query}, ${parseInt(list[id])}`)
     var {rows} = await db.query(`${query} WHERE co_id = $1 ORDER BY company.co_id`, [parseInt(list[id])])    
     response.items.push(await addSections(rows[0]))
   }

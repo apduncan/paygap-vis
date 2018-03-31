@@ -132,7 +132,7 @@ async function meanBonusGap(level, id, response) {
   var field = constants.sicLevels[level].field
   var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, co_diff_bonus_mean FROM paygap.company \
   NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
-  WHERE ${field} =  $1 ORDER BY co_id`
+  WHERE ${field} =  $1 AND (co_male_median_bonus > 0 OR co_female_median_bonus > 0) ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {
@@ -155,7 +155,7 @@ async function medianBonusGap(level, id, response) {
   var field = constants.sicLevels[level].field
   var query = `SELECT DISTINCT ON(co_id) co_hash, co_id, co_diff_bonus_median FROM paygap.company \
   NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic \
-  WHERE ${field} =  $1 ORDER BY co_id`
+  WHERE ${field} =  $1 AND (co_male_median_bonus > 0 OR co_female_median_bonus > 0) ORDER BY co_id`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {

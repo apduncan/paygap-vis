@@ -233,6 +233,18 @@ class EvenHistogram extends AjaxGraph {
                 }
             }
         }
+        if(this._params.hasOwnProperty('point')) {
+            var companyPoint = {
+                type: 'scatter',
+                marker: {
+                    radius: 5,
+                },
+                color: 'black', 
+                radius: 5,
+                data: [{x: this._params.point, y: 0}],
+            }
+            chart.series.push(companyPoint)
+        }
         this._set_params(chart, this._params.highcharts)
         // var chart_obj = Highcharts.chart(this._id, chart)
         $(this._id).highcharts(chart)

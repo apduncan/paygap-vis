@@ -144,6 +144,7 @@ class IndustryExplorer {
         //define default measure
         this._currentMeasure = this._measures.directorRatio
         // create sections which will be used for navigation, and place in object
+        $(id).empty()
         const title = $(`<div class="section-title explorer-padding"></div>`).appendTo(id)
         const buttons = $(`<div class="explorer-padding"></div>`).appendTo(id)
         const breadcrumbs = $('<div class="breadcrumbs explorer-padding"></div>').appendTo(id)
@@ -560,7 +561,7 @@ class IndustryExplorer {
         chart.fetchAndDraw()
     }
 
-    _drawQuartileSkew(item, index, id) {
+    _drawQuartileSkew(item, index, id, min, max) {
         var meanLabel = [{
             label: {
                 text: 'Mean'

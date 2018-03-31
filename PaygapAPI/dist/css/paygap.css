@@ -58,11 +58,36 @@ header {
     font-size: x-large;
     font-weight: bold;
     color: white;
-    padding: 1ex;
     letter-spacing: 0.1ex;
+    display: flex;
+    flex-direction: column;
+    /* justify-content: space-between; */
+}
+a.title-link:hover, a.title-link:active, a.title-link:visited {
+    color: white;
+}
+div.title-div {
+    padding: 1ex;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
+}
+div.header-links {
+    display: flex;
+    flex-direction: row;
+    font-family: 'Helvetica', 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+    font-size: large;
+    font-weight: normal;
+}
+span.header-link {
+    background: rgb(197, 159, 255); 
+    padding: 0.5ex;
+    color: rgb(123, 73, 173);
+    margin-left: 0.5ex;
+    cursor: pointer;
+}
+span.header-link:hover {
+    background: rgb(245, 245, 245);
 }
 /*INPUT TYPE STYLES*/
 button {
@@ -129,19 +154,19 @@ button:disabled {
 /*TEXT STYLES*/
 input[type='text'] {
     border: thin solid rgb(123, 73, 173);
-    font-size: medium;
+    font-size: large;
     color: rgb(123, 73, 173);
     margin: 1ex;
     padding: 0.5ex;
 }
-input[type='text']:hover {
+/* input[type='text']:hover {
    background: rgb(179, 121, 238); 
    color: white;
 }
 input[type='text']:focus {
     background: rgb(179, 121, 238);
-    color: white;
-}
+    color: white; 
+}*/
 
 /*LOADING SPINNER*/
 div.loader {
@@ -190,6 +215,7 @@ div.small-card .title div.pin {
 /*EXPLORER STYLES*/
 div.small-card {
     width: 22vw;
+    max-width: 400px;
     margin: 1ex;
 }
 div.card {
@@ -202,7 +228,7 @@ div.interactable-card:hover {
 div.interactable:hover {
     cursor: pointer;
 }
-div.small-card .highcharts-point {
+div.even-histogram .highcharts-point {
     cursor: pointer;
 }
 div.small-card .title {
@@ -213,6 +239,7 @@ div.small-card .title {
     font-family: Georgia, 'Times New Roman', Times, serif;
     overflow-y: scroll;
     padding: 0.5em; 
+    cursor: pointer;
     -ms-overflow-style: -ms-autohiding-scrollbar;
 }
 div.small-card .title::-webkit-scrollbar {
@@ -223,6 +250,12 @@ div.section-title {
     font-size: x-large; 
     letter-spacing: 0.2ex;
     margin-bottom: 0.2ex;
+}
+div.subsection-title {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: large; 
+    letter-spacing: 0.1ex;
+    margin-bottom: 0.1ex;
 }
 .button-height {
     height: 32px;
@@ -397,6 +430,42 @@ table.co-list {
     padding: 1ex;
     height: 3em;
     overflow-y: auto;
+}
+/*SEARCH STYLES*/
+ input#co-search, input.autofill {
+    width: 20vw;
+    min-width: 600px;
+    font-size: large;
+    margin: 0;
+    background: white;
+}
+.margin-bottom {
+    margin-bottom: 1ex;
+}
+.search-position {
+    display: -webkit-flexbox;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    /* -webkit-flex-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center; */
+    /* align-items: center; */
+    justify-content: center;
+    flex-grow: 1;
+}
+div.tt-dataset-company-names p.tt-suggestion {
+    background: white;
+    border-top: thin solid rgb(123, 73, 173);
+    border-left: thin solid rgb(123, 73, 173);
+    border-right: thin solid rgb(123, 73, 173);
+    margin: 0;
+    padding: 0.5ex;
+    width: 20vw;
+    min-width: 600px;
+}
+div.tt-dataset-company-names p.tt-suggestion:last-child {
+    border-bottom: thin solid rgb(123, 73, 173);
 }
 /*MODAL DISPLAY STYLES TAKEN FROM W3.CSS*/
 .w3-modal{z-index:3;display:flex;flex-direction:row;justify-content:center;align-content:center;position:fixed;left:0;top:0;width:100%;height:100%;overflow:hidden;background-color:rgb(0,0,0);background-color:rgba(0,0,0,0.4)}
