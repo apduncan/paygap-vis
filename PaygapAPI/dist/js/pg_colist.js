@@ -1,6 +1,33 @@
 //DRAW A SORTABLE / SEARCHABLE / FILTERABLE LIST OF COMPANIES
 //INTENDED TO BE A DISPLAY ONTOP OF EXISTING PARTS OF SITE, LINKS OUT TO COMPANY OR SECTOR
 //PAGE
+//add an ajax queue manager, so don't have to wait for 400 companies to be returned
+//code from https://stackoverflow.com/questions/4785724/queue-ajax-requests-using-jquery-queue
+(function($) {
+    // Empty object, we are going to use this as our Queue
+    var ajaxQueue = $({});
+  
+    $.ajaxQueue = function(ajaxOpts) {
+      // hold the original complete function
+      var oldComplete = ajaxOpts.complete;
+  
+      // queue our ajax request
+      ajaxQueue.queue(function(next) {    
+  
+        // create a complete callback to fire the next event in the queue
+        ajaxOpts.complete = function() {
+          // fire the original complete if it was there
+          if (oldComplete) oldComplete.apply(this, arguments);    
+          next(); // run the next query in the queue
+        };
+  
+        // run the query
+        $.ajax(ajaxOpts);
+      });
+    };
+  
+  })(jQuery);
+
 class CompanyList {
     constructor(id, linkOutId, params) {
         //id is selector to draw this in
@@ -12,6 +39,8 @@ class CompanyList {
         this._params = params
         //object to store relevant DOM elements in
         this._elements = new Object()
+        //object for controlling list
+        this.companyList = null
 
         this.fetchAndDraw()
     }
@@ -32,7 +61,7 @@ class CompanyList {
         this._elements['container'] = container
     }
 
-    _drawList(data) {
+    _drawListStructure() {
         //empty out contents, replace with list
         $(this._elements.container).empty()
         const search = $(`<input type="text" class="search" placeholder="Search Companies">`).appendTo(this._elements.container)
@@ -83,18 +112,31 @@ class CompanyList {
                 { name: 'co_diff_hourly_mean', attr: 'data-meangap' },
             ]
         })
+        this.companyList = companyList
+        this._elements.table = table
+    }
+
+    _drawList(data) {
+        var startIdx
+        if(this.companyList == null) {
+            this._drawListStructure()
+            this._data = data
+            startIdx = 0
+        } else {
+            startIdx = this._data.items.length
+            this._data.items = this._data.items.concat(data.items)
+        }
         for(var idx in data.items) {
             //construct a couple of fields - index, and workforce female
             const item = data.items[idx]
             data.items[idx]['workforce_female'] = (parseFloat(item.co_female_lower_band * 0.25) + parseFloat(item.co_female_middle_band * 0.25) + parseFloat(item.co_female_upper_band * 0.25) + parseFloat(item.co_female_upper_quartile * 0.25))
-            data.items[idx]['index'] = idx
+            data.items[idx]['index'] = startIdx + parseInt(idx)
             data.items[idx]['co_diff_hourly_mean_sort'] = this._sortNumber(item.co_diff_hourly_mean)
             data.items[idx]['co_diff_hourly_median_sort'] = this._sortNumber(item.co_diff_hourly_median)
             data.items[idx]['quartile_skew_sort'] = this._sortNumber(item.quartile_skew)
-            companyList.add(data.items[idx])
-            this._drawCompanyLine($(table).find('.co-item').last())
+            this.companyList.add(data.items[idx])
+            this._drawCompanyLine($(this._elements.table).find('.co-item').last())
         }
-        this._companyList = companyList
     }
     
     _sortNumber(num) {
@@ -227,13 +269,34 @@ class CompanyList {
 
     _fetch() {
         const self = this
-        $.ajax('./company', { data: this._params })
-        .done(function(data) {
-            self._data = data
-            self._drawList(data)
-        })
-        .fail(function(jxhr, error) {
-            self._drawFailure()
-        })
+        const chunkSize = 10
+        //divide up the list be requested into smaller chunks
+        //enqueue a request for each chunk
+        if(this._params.hasOwnProperty('list')) {
+            var start = 0
+            var end
+            do {
+                end = start + chunkSize
+                end = end > this._params.list.length ? this._params.list.length : end 
+                var fetch = this._params.list.slice(start, end)
+                $.ajaxQueue({
+                    url: './company', 
+                    data: {id: this._params.id, level: this._params.level, list: fetch},
+                    success: function(data) {
+                        self._drawList(data)
+                    }
+                })
+                start = start + chunkSize
+            } while((end < this._params.list.length))
+        } else {
+            $.ajax('./company', { data: this._params })
+            .done(function(data) {
+                self._data = data
+                self._drawList(data)
+            })
+            .fail(function(jxhr, error) {
+                self._drawFailure()
+            })
+        }
     }
 }
