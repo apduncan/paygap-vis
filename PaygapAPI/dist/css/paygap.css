@@ -4,6 +4,9 @@
     flex-wrap: wrap;
     flex-direction: row;
     align-content: flex-start;
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow-y: auto;
 }
 div.no-content {
     display: flex;
@@ -93,6 +96,8 @@ span.header-link:hover {
 button {
     background: rgb(123, 73, 173);
     border: rgb(123, 73, 173) thin solid;
+    font-weight: bold;
+    color: white;
 }
 button:hover {
     background: rgb(179, 121, 238);
@@ -151,6 +156,15 @@ button:disabled {
     vertical-align: middle;
     display: inline-block;
 }
+select {
+    background: white;
+    border: thin solid rgb(123, 73, 173);
+    color: rgb(123, 73, 173);
+    height: 2em;
+}
+select:hover {
+    background: rgb(197, 159, 255);
+}
 /*TEXT STYLES*/
 input[type='text'] {
     border: thin solid rgb(123, 73, 173);
@@ -197,14 +211,12 @@ div.loader > div {
   }
 
 /*PIN STYLES*/
-div.pin-bar {
-    width: 25%;
-    background: rgb(179, 121, 238);
-    float: left;
+div.explore-vert-layout {
     display: flex;
-    flex-wrap: wrap;
     flex-direction: row;
-    justify-content: center;
+}
+div.explore-pin-bar {
+    background: rgb(197, 159, 255);
 }
 div.small-card .title div.pin {
     font-size: small;
@@ -213,6 +225,11 @@ div.small-card .title div.pin {
 }
 
 /*EXPLORER STYLES*/
+span.explore-dialog-link {
+    color: blue;
+    cursor: pointer;
+    margin-bottom: 0.5ex;
+}
 div.small-card {
     width: 22vw;
     max-width: 400px;
@@ -333,6 +350,10 @@ div.icon img {
 }
 table.co-list {
     border-collapse: collapse;
+}
+.pagination li {
+    display:inline-block;
+    padding:5px;
 }
 
 /*COMPANY PROFILE STYLES*/
@@ -466,6 +487,22 @@ div.tt-dataset-company-names p.tt-suggestion {
 }
 div.tt-dataset-company-names p.tt-suggestion:last-child {
     border-bottom: thin solid rgb(123, 73, 173);
+}
+/* COMPARE STYLES */
+div.compare-graph {
+    flex-grow: 1;
+}
+.compare {
+    margin-right: 0.5ex;
+}
+button.compare, button.compare-large-margin {
+    padding: 1ex;
+}
+.compare-large-margin {
+    margin-right: 1.5ex;
+}
+div.compare-controls {
+    padding-bottom: 0.5em;
 }
 /*MODAL DISPLAY STYLES TAKEN FROM W3.CSS*/
 .w3-modal{z-index:3;display:flex;flex-direction:row;justify-content:center;align-content:center;position:fixed;left:0;top:0;width:100%;height:100%;overflow:hidden;background-color:rgb(0,0,0);background-color:rgba(0,0,0,0.4)}

@@ -1,41 +1,153 @@
 <html>
     <head>
+        <script src="dist/js/jquery.min.js"></script> 
+        <script src="https://code.highcharts.com/highcharts.js"></script>
+        <script src="https://code.highcharts.com/modules/boost.js"></script>
+        <script src="https://code.highcharts.com/modules/exporting.js"></script>
         <style>
-            html, body, .container {
+            html, body, #container {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                border: 0;
+            }
+            div.vert-bars {
+                display: flex;
+                flex-direction: row;
                 height: 100%;
             }
-            .container {
-                display: -webkit-flexbox;
-                display: -ms-flexbox;
-                display: -webkit-flex;
-                display: flex;
-                -webkit-flex-align: center;
-                -ms-flex-align: center;
-                -webkit-align-items: center;
-                align-items: center;
-                justify-content: center;
+            div.side-menu {
+                border: solid thin red;
             }
-            div.section-title {
-                font-family: Georgia, 'Times New Roman', Times, serif;
-                font-size: x-large; 
-                letter-spacing: 0.2ex;
-                margin-bottom: 0.2ex;
+            div.main-box {
+                border: solid thin hotpink;
+                flex-grow: 1;
+                flex-shrink: 1;
             }
-            div.margin-bottom {
-                margin-bottom: 1ex;
+            div.expand-tab {
+                padding: 1ex;
+                background-color: purple;
             }
-            input.autofill {
-                width: 20vw;
-                min-width: 600px;
-                font-size: x-large;
+            span.expand-text {
+                -webkit-transform: rotate(90deg);
+                transform: rotate(90deg);
+                display: inline-block;
+                position: absolute;
+            }
+            @media screen and (max-width: 1680px) {
+                div.side-menu {
+                    /*height: 100%; /* 100% Full-height */
+                    width: 0; /* 0 width - change this with JavaScript */
+                    position: relative; /* Stay in place */
+                    z-index: 1; /* Stay on top */
+                    top: 0; /* Stay at the top */
+                    left: 0;
+                    background-color: #111; /* Black*/
+                    overflow-x: hidden; /* Disable horizontal scroll */
+                    padding-top: 60px; /* Place content 60px from the top */
+                    transition: 0.5s; 
+                }
             }
         </style>
+        <script>
+            async function test() {
+                var s = new CompareSeries('quartileSkew', 'meanGap')
+                var d = await s.fetch() 
+                console.log(d)
+            }
+            $(document).ready(function() {
+                $('.expand-tab').click(function() {
+                    var width = null;
+                    if($('.side-menu').width() === 0) {
+                        width = '200px'
+                    } else {
+                        width = 0
+                    }
+                    $('.side-menu').width(width)
+                })
+
+// Prepare the data
+var data = [],
+  n = 1000000,
+  i;
+for (i = 0; i < n; i += 1) {
+  data.push([
+    Math.pow(Math.random(), 2) * 100,
+    Math.pow(Math.random(), 2) * 100
+  ]);
+}
+
+if (!Highcharts.Series.prototype.renderCanvas) {
+  throw 'Module not loaded';
+}
+
+console.time('scatter');
+Highcharts.chart('main-box', {
+
+  chart: {
+    zoomType: 'xy',
+    height: '100%'
+  },
+
+  boost: {
+    useGPUTranslations: true,
+    usePreAllocated: true
+  },
+
+  xAxis: {
+    min: 0,
+    max: 100,
+    gridLineWidth: 1
+  },
+
+  yAxis: {
+    // Renders faster when we don't have to compute min and max
+    min: 0,
+    max: 100,
+    minPadding: 0,
+    maxPadding: 0,
+    title: {
+      text: null
+    }
+  },
+
+  title: {
+    text: 'Scatter chart with 1 million points'
+  },
+
+  legend: {
+    enabled: false
+  },
+
+  series: [{
+    type: 'scatter',
+    color: 'rgba(152,0,67,0.1)',
+    data: data,
+    marker: {
+      radius: 0.1
+    },
+    tooltip: {
+      followPointer: false,
+      pointFormat: '[{point.x:.1f}, {point.y:.1f}]'
+    }
+  }]
+
+});
+console.timeEnd('scatter');
+            })
+        </script>
     </head>
     <body>
-        <div class="container">
+        <div id="container">
             <div>
-                <div class="section-title margin-bottom">Find a Company</div>
-                <div><input type="text" class="autofill"></div>
+                <h4>OHNO</h4>
+            </div>
+            <div class="vert-bars">
+                <div class="side-menu">Menu</div>
+                <div class="expand-tab">
+                    <img src="img/settings.png">
+                </div>
+                <div class="main-box" id="main-box">Box</div>
             </div>
         </div>
     </body>

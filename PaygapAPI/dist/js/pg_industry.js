@@ -182,7 +182,9 @@ class IndustryExplorer {
                 self.changeMeasure(element)
             })
         })
-        const graphs = $('<div class="flexcontainer"></div>').appendTo(id)
+        const vert = $('<div class="explore-vert-layout"></div>').appendTo(id)
+        const graphs = $('<div class="flexcontainer"></div>').appendTo(vert)
+        const pin = $('<div class="explore-pin-bar"></div>').appendTo(vert)
         this._elements = {
             title: title,
             buttons: breadcrumbs,
@@ -190,7 +192,8 @@ class IndustryExplorer {
             undo: undoButton,
             redo: redoButton,
             up: upButton,
-            breadcrumbs: breadcrumbs
+            breadcrumbs: breadcrumbs,
+            pinBar: pin
         }
         //register this as the controller for this div
         $(id).data('controller', this)
@@ -249,6 +252,7 @@ class IndustryExplorer {
                 measure = removeMinMax(measure, absMin, absMax, 'value')
             }
             if(outliers === 'outliers') {
+                /*EXPERIMENT WITH IQR BASED OUTLIERS
                 //calculate sd
                 const mean = average(measure, 'value')
                 const sqdiffmean = average(measure.map(function(value) {
@@ -256,7 +260,22 @@ class IndustryExplorer {
                 }))
                 const sd  = Math.sqrt(sqdiffmean)
                 //remove anything over 3SD from mean
-                measure = removeMinMax(measure, mean - (3*sd), mean + (3*sd), 'value')
+                measure = removeMinMax(measure, mean - (3*sd), mean + (3*sd), 'value')*/
+                var pruned = measure
+                if(pruned.length > 4) {
+                    pruned = pruned.sort((a,b) => a.value - b.value)
+                    const medianPos = (pruned.length / 2)
+                    const medianVal = (medianPos % 1) > 0 ? pruned[Math.ceil(medianPos)].value : (pruned[medianPos].value + pruned[medianPos + 1].value) / 2
+                    const lowerPos = (pruned.length / 4)
+                    const lowerVal = (lowerPos % 1) > 0 ? pruned[Math.ceil(lowerPos)].value : (pruned[lowerPos].value + pruned[lowerPos + 1].value) / 2
+                    const upperPos = medianPos + lowerPos
+                    const upperVal =  (upperPos % 1) > 0 ? pruned[Math.ceil(upperPos)].value : (pruned[upperPos].value + pruned[upperPos + 1].value) / 2
+                    const iqr = upperVal - lowerVal
+                    const upperFence = upperVal + (3 * iqr)
+                    const lowerFence = lowerVal - (3 * iqr)
+                    pruned = removeMinMax(pruned, lowerFence, upperFence, 'value')
+                }
+                measure = pruned
             }
             //build a data only array
             const onlyData = measure.map(function(value, index) {
@@ -277,16 +296,7 @@ class IndustryExplorer {
     _pinGraph(id) {
         //clones a graph and adds to the right side div
         //create a div if needed
-        var pinBar
-        if(!this._elements.hasOwnProperty('pinBar')) {
-            $(this._elements.graphs).width('74%')
-            $(this._elements.graphs).css('float', 'left')
-            pinBar = $(`<div class="pin-bar"></div>`).appendTo(this._id)
-            this._elements.pinBar = pinBar
-        } else {
-            pinBar = this._elements.pinBar
-        }
-
+        var pinBar = this._elements.pinBar
         //clone the graph into the pin bar
         const pinnedGraph = $(id).clone(true).appendTo(pinBar)
         //change the pin handler
@@ -295,13 +305,6 @@ class IndustryExplorer {
         const self = this
         $(link).click(function() {
             $(pinnedGraph).remove()
-            //check if pinBar should be removed
-            if($(pinBar).find(".pin").length < 1) {
-                $(pinBar).remove()
-                delete self._elements.pinBar
-                $(self._elements.graphs).width('100%')
-                $(self._elements.graphs).css('float', null)
-            }
             return false
         })
     }

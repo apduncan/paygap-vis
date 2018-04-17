@@ -46,8 +46,6 @@ class CompanyProfile {
         var bars = [
             {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)', measure: 'co_diff_hourly_mean'},
             {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)', measure: 'co_diff_hourly_median'},
-            // {class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean'},
-            // {class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)', measure: 'co_diff_bonus_median'},
             {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)', measure: 'workforce_female'},
             {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew'}
         ]
@@ -129,6 +127,7 @@ class CompanyProfile {
         ]
         //set the top title
         $(this.elements.detailHeader).text(title)
+        //draw out the address and quartiles
         $(this.elements.detailScroller).empty()
         //loop through sic codes and draw summaries for each one
         for(var i in this.data.sections) {

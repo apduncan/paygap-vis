@@ -1,6 +1,9 @@
 function co_profile(id) {
     $('#data-container').empty()
     const profile = new CompanyProfile($('#data-container'), id)
+    //clear popups
+    $('.highslide-container table').remove()
+    $('.highslide-container .highslide-wrapper').remove()
     return false
 }
 class CompanySearch {

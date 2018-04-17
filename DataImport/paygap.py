@@ -453,11 +453,11 @@ print(errors)
 
 if __name__ == "__main__":
 #    fetch_co_sic()
-    # cos = Company.all_from_csv('../PayGap-31032018.csv')
-    # for co in cos:
-    #     co.save()
-    # get_all_directors()
-    # gender_all_directors()
+    cos = Company.all_from_csv('../PayGap-10042018.csv')
+    for co in cos:
+        co.save()
+    get_all_directors()
+    gender_all_directors()
     fetch_co_sic()    
 '''
 for company in companies:

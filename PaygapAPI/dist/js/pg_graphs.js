@@ -356,6 +356,7 @@ class EvenHistogram extends AjaxGraph {
         var pruned = removeMinMax(data, absMin, absMax, 'value')
         //only remove outliers if flag set
         if(outliers) {
+            /*TESTING USING IQR FOR OUTLIERS
             //calculate sd
             const mean = average(pruned, 'value')
             const sqdiffmean = average(pruned.map(function(value) {
@@ -363,7 +364,20 @@ class EvenHistogram extends AjaxGraph {
             }))
             const sd  = Math.sqrt(sqdiffmean)
             //remove anything over 3SD from mean
-            pruned = removeMinMax(pruned, mean - (3*sd), mean + (3*sd), 'value')
+            */
+            if(pruned.length > 4) {
+                pruned = pruned.sort((a,b) => a.value - b.value)
+                const medianPos = (pruned.length / 2)
+                const medianVal = (medianPos % 1) > 0 ? pruned[Math.ceil(medianPos)].value : (pruned[medianPos].value + pruned[medianPos + 1].value) / 2
+                const lowerPos = (pruned.length / 4)
+                const lowerVal = (lowerPos % 1) > 0 ? pruned[Math.ceil(lowerPos)].value : (pruned[lowerPos].value + pruned[lowerPos + 1].value) / 2
+                const upperPos = medianPos + lowerPos
+                const upperVal =  (upperPos % 1) > 0 ? pruned[Math.ceil(upperPos)].value : (pruned[upperPos].value + pruned[upperPos + 1].value) / 2
+                const iqr = upperVal - lowerVal
+                const upperFence = upperVal + (3 * iqr)
+                const lowerFence = lowerVal - (3 * iqr)
+                pruned = removeMinMax(pruned, lowerFence, upperFence, 'value')
+            }
         }
         return pruned
     }

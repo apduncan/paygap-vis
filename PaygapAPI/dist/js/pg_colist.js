@@ -75,10 +75,11 @@ class CompanyList {
         <th class="sort even-width" data-sort="workforce_female">% Workforce Female</th> \
         <th class="sort even-width" data-sort="quartile_skew_sort">Quartiles</th> \
         </tr></thead> \
-        <tbody class="list co-list"></tbody></table>`).appendTo(this._elements.container)
+        <tbody class="list co-list"></tbody></table> \
+        <ul class="pagination"></ul>`).appendTo(this._elements.container)
         const tableBody = $(table).find('tbody')
         //add template line
-        const template = $(`<tr id="template-colist" class="co-item"> \
+        const template = $(`<tr id="template-colist" class="co-item" data-rendered="false"> \
         <td><a href="" class="co_name"></a></td> \
         <td class="sic_section"><div class="icon"></div></td> \
         <td class="co_public"></td>
@@ -110,7 +111,17 @@ class CompanyList {
                 { name: 'co_female_upper_quartile', attr: 'data-quartile' },
                 { name: 'co_diff_hourly_median', attr: 'data-mediangap' },
                 { name: 'co_diff_hourly_mean', attr: 'data-meangap' },
-            ]
+            ],
+            page: 20,
+            pagination: { outerWindow: 1 }
+        })
+        const self = this
+        companyList.on('updated', function() {
+            $(table.find('tr[data-rendered=false]')).each(function(idx, el) {
+                if($(el).attr('id') !== 'template-colist') {
+                    self._drawCompanyLine(el) 
+                }
+            })
         })
         this.companyList = companyList
         this._elements.table = table
@@ -135,7 +146,7 @@ class CompanyList {
             data.items[idx]['co_diff_hourly_median_sort'] = this._sortNumber(item.co_diff_hourly_median)
             data.items[idx]['quartile_skew_sort'] = this._sortNumber(item.quartile_skew)
             this.companyList.add(data.items[idx])
-            this._drawCompanyLine($(this._elements.table).find('.co-item').last())
+            //this._drawCompanyLine($(this._elements.table).find('.co-item').last())
         }
     }
     
@@ -222,6 +233,8 @@ class CompanyList {
             $('.w3-modal').remove()
             return false    
         })
+        //set as rendered
+        $(element).attr('data-rendered', 'true')
     }
     
     _drawMeanSummary(element, dbField, dataField, index, graphClass) {
