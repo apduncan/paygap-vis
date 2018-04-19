@@ -94,6 +94,20 @@ class IndustryExplorer {
                 min: false,
                 max: 100
             },
+            bonusMedianGap: {
+                url: 'medianBonusGap',
+                name: '% Median Bonus Pay Gap',
+                explain: 'This is the difference between the median bonus paid to all females and all males, expressed as a % of male mean bonus pay. \
+                A gap of 50% shows that median bonus pay for men is 50% higher than for women \
+                A negative number indicates median bonus pay for women is higher than for men.',
+                source: {
+                    title: 'UK Gender Pay Gap Reporting 2017/8',
+                    url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
+                },
+                draw: this._drawBonusMeanGap,
+                min: false,
+                max: 100
+            },
             workforceFemale: {
                 url: 'workforceFemale',
                 name: '% Workforce Female',

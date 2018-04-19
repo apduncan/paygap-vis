@@ -1032,9 +1032,10 @@ class BandedEvenHistogram extends EvenHistogram {
                 y: 1,
                 x:  binnedData.min + (idx * binnedData.interval),
                 color: `rgba(${self._params.color.r}, ${self._params.color.g}, ${self._params.color.b}, ${sat})`,
-                binCount: el[1]
+                binCount: el[1],
             })
         })
+        series.pointPlacement = 'between'
         return series
     }
 
@@ -1088,7 +1089,7 @@ class BandedEvenHistogram extends EvenHistogram {
                 minorTickLength: 0,
                 tickLength: 0,
                 reversed: false,
-                offset: -12,
+                // offset: -12,
                 plotLines: [{
                     value: mean,
                     width: 3,
@@ -1401,10 +1402,10 @@ class BandedQuartileSkew extends BandedEvenHistogram {
                     formatter: function() {
                         var x = parseFloat(this.x)
                         var mult = (x && x / Math.abs(x)) 
-                        mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
+                        mult = mult < 0 && (x + self._binned.interval) < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have skew from<br> \
-                        <strong>${parseFloat(x).toFixed(1)}</strong> to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
+                        <strong>${parseFloat(x).toFixed(2)}</strong> to <br>\
+                        <strong>${(x+self._binned.interval).toFixed(2)}</strong>` : `This company has<br> \
                         <strong>${x.toFixed(2)}</strong> <br> skew`
                     }
                 },

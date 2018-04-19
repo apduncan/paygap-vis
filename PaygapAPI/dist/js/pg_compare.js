@@ -47,6 +47,28 @@ class CompareGraph {
                     outliers: {max: 100, min: false, outliers: true}
                 }
             },
+            meanBonusGap: {
+                label: `Mean Bonus Pay Gap`,
+                formatter: function(value) {
+                    return `${value.toFixed(1)}%`
+                },
+                outlierSettings: {
+                    off: false,
+                    impossible: {max: 100, min: false, outliers: false},
+                    outliers: {max: 100, min: false, outliers: true}
+                }
+            },
+            medianBonusGap: {
+                label: `Median Bonus Pay Gap`,
+                formatter: function(value) {
+                    return `${value.toFixed(1)}%`
+                },
+                outlierSettings: {
+                    off: false,
+                    impossible: {max: 100, min: false, outliers: false},
+                    outliers: {max: 100, min: false, outliers: true}
+                }
+            },
             directorRatio: {
                 label: `Female Directors (%)`,
                 formatter: function(value) {
@@ -371,7 +393,9 @@ class CompareSeries {
                     stored = self._format(data)
                     //store result
                     const thisKey = `${url}#${self.x}#${self.y}`
-                    localforage.setItem(thisKey, stored)
+                    const copy = stored.map(a => ({...a}))
+                    localforage.setItem(thisKey, copy)
+                    stored.forEach((group, index) => stored[index] = self._handleOutliers(group))
                     resolve(stored)
                 })
             }
@@ -399,7 +423,8 @@ class CompareSeries {
                     group.data.push({x: data[element.id], y: element.value, id: element.id})
                 }
             })
-            series.push(self._handleOutliers(group))
+            // series.push(self._handleOutliers(group))
+            series.push(group)
         })
         return series
     }

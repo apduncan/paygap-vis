@@ -36,18 +36,39 @@ class CompanyProfile {
     _draw() {
         //draw in structural elements
         this.elements.structure = $(`<div class="profile-container"></div>`).appendTo(this.elements.container)
-        this.elements.title = $(`<div class="section-title">${this.data.co_name}</div>`).appendTo(this.elements.structure)
+        this.elements.titleBar = $('<div class="profile-title-bar"></div>').appendTo(this.elements.structure)
+        this.elements.titleLeft = $('<div class="profile-title-left"></div>').appendTo(this.elements.titleBar)
+        this.elements.title = $(`<div class="section-title">${this.data.co_name}</div>`).appendTo(this.elements.titleLeft)
+        this.elements.address = $(`<div class="profile-title-address subsection-title">${this.data.co_address_csv}</div>`).appendTo(this.elements.titleLeft)
+        //this this company has supplied comments pop in a link
+        if(this.data.co_link !== '') {
+            this.elements.link = $(`<div><a href="${this.data.co_link}" target="_blank">Company's statement</a></div>`).appendTo(this.elements.titleLeft)
+        }
+        this.elements.quartile = $(`<div class="profile-title-right">
+        <div class="quartile-pyramid"> \
+        <div class="quartile-block-bg"><div class="quartile-block" data-widthkey="co_female_upper_quartile" data-desc="Top Quartile"></div></div> \
+        <div class="quartile-block-bg"><div class="quartile-block" data-widthkey="co_female_upper_band" data-desc="Upper Middle Quartile"></div></div> \
+        <div class="quartile-block-bg"><div class="quartile-block" data-widthkey="co_female_middle_band" data-desc="Lower Middle Quartile"></div></div> \
+        <div class="quartile-block-bg"><div class="quartile-block" data-widthkey="co_female_lower_band" data-desc="Bottom Quartile"></div></div> \
+        </div> 
+        </div>`).appendTo(this.elements.titleBar)
         this.elements.split = $(`<div class="profile-two-panel"></div>`).appendTo(this.elements.structure)
         this.elements.barContainer = $(`<div class="profile-bar-container"></div>`).appendTo(this.elements.split)
         this.elements.detailContainer = $(`<div class="profile-detail-container"></div>`).appendTo(this.elements.split)
         this.elements.detailHeader = $(`<div class="profile-detail-title">Test</div>`).appendTo(this.elements.detailContainer)
         this.elements.detailScroller = $(`<div class="profile-detail-scroller"></div>`).appendTo(this.elements.detailContainer)
+        //draw quartiles
+        $(this.elements.quartile).find('.quartile-block').each((idx, el) => {
+            const pc = parseFloat(this.data[$(el).data('widthkey')]).toFixed(0) + '%'
+            const desc = $(el).data('desc')
+            $(el).width(pc).text(pc).closest('.quartile-block-bg').attr('title', `${desc}: ${pc} Female`).tooltip()
+        })
         //draw each of the bars
         var bars = [
             {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)', measure: 'co_diff_hourly_mean'},
             {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)', measure: 'co_diff_hourly_median'},
             {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)', measure: 'workforce_female'},
-            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew'}
+            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew', round: 2}
         ]
         if(this.data.co_male_median_bonus > 0 || this.data.co_female_median_bonus > 0) {
             bars.push({class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean'})
@@ -63,7 +84,8 @@ class CompanyProfile {
             const stack = $(`<div class="profile-vert-bar card interactable-card interactable"></div>`).appendTo(this.elements.barContainer)
             const header = $(`<div class="profile-bar-header"></div>`).appendTo(stack)
             const title = $(`<div>${bar.title}</div>`).appendTo(header)
-            const value = $(`<div>${parseFloat(bar.value).toFixed(1)}</div>`).appendTo(header)
+            const round = bar.round || 1
+            const value = $(`<div>${parseFloat(bar.value).toFixed(round)}</div>`).appendTo(header)
             const barDiv = $(`<div id="${id}" class="graph"></div>`).appendTo(stack)
             const thisBar = new bar.class(`#${id}`, {
                 url: {

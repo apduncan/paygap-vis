@@ -366,6 +366,7 @@ table.co-list {
     display: flex;
     flex-direction: row;
     flex-grow: 1;
+    flex-shrink: 1;
     /* height: 100%; */
 }
 .profile-bar-container {
@@ -429,6 +430,22 @@ table.co-list {
     color: white;
     padding: 1ex;
     letter-spacing: 0.1ex;
+}
+.profile-title-bar {
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+}
+.profile-title-left {
+    flex-shrink: 1;
+    display: flex;
+    flex-direction: column;
+}
+.profile-title-right {
+    width: 14vw;
+    min-width: 14vw;
+    padding: 0.5ex;
+    margin-left: 1ex;
 }
 .profile-detail-graphs {
     display: flex;
