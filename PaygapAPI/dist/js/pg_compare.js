@@ -92,12 +92,20 @@ class CompareGraph {
                 }
             },
         }
+        this.drill = {
+            levels: ['section', 'industry', 'division', 'group'],
+            path: [{level: 'section', id: null, link: 'ALL'}]
+        }
         this.container = container
         this.elements = {}
         this.x = params.x || 'quartileSkew'
         this.y = params.y || 'meanGap'
+        this.level = 'section'
+        this.id = null
         this.chart = params.highcharts || { }
         this.pendingAjax = null
+        this.tooltip = {}
+        this.hiddenSeries = []
         const self = this
         this.chartDefaults = {
             chart: {
@@ -133,7 +141,10 @@ class CompareGraph {
                 navigation: {
                     animation: true
                 },
-                itemMarginBottom: 4
+                itemMarginBottom: 4,
+                itemStyle: {
+                    width: 300
+                }
             },
             boost: {
                 useGPUTranslations: true
@@ -149,11 +160,15 @@ class CompareGraph {
                       self.pendingAjax.abort()
                     }
                     //set this as the point being hovered
-                    self.currentTooltip = point.id
+                    // self.currentTooltip = point.id
                     const xMeasure = self.measures[self.x]
                     const yMeasure = self.measures[self.y]
                     var placeholder = '' 
-                    self.currentTooltipName = 'Loading...'
+                    // self.currentTooltipName = 'Loading...'
+                    self.tooltip.seriesIdx = point.series.index
+                    self.tooltip.name = 'Loading...'
+                    self.tooltip.id = point.id
+                    self.tooltip.seriesName = point.series.name
                     var msg = `${xMeasure.label}: ${xMeasure.formatter(point.x)}, \
                     ${yMeasure.label}: ${yMeasure.formatter(point.y)}`
                     if(!point.options.hasOwnProperty('co_name')) {
@@ -163,13 +178,13 @@ class CompareGraph {
                         url: `./company/${point.id}`,
                         success: function(ajax){
                             point.options.co_name = ajax.co_name
-                            self.currentTooltipName = ajax.co_name
+                            self.tooltip.name = ajax.co_name
                             var tt = point.series.chart.tooltip
-                            tt.label.textSetter(`<b>${ajax.co_name}</b><br>${msg}`)
+                            tt.label.textSetter(`<b>${ajax.co_name}</b><br>${self.tooltip.seriesName}<br>${msg}`)
                         }
                         })
                     } else {
-                        self.currentTooltipName = point.options.co_name
+                        self.tooltip.name = point.options.co_name
                         placeholder = `<b>${point.options.co_name}</b>`
                     }
                     //associate an event with the newly created hover element
@@ -184,7 +199,7 @@ class CompareGraph {
                             })
                         }
                     })
-                    return `${placeholder}<br>${msg}`
+                    return `${placeholder}<br>${self.tooltip.seriesName}<br>${msg}`
                 }
             },
             plotOptions: {
@@ -227,7 +242,10 @@ class CompareGraph {
     async fetchAndDraw() {
         $(this.container).empty().append(`<div class="loader"><div></div></div>`)
         //get data
-        var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures})
+        // var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: this.level, id: this.id})
+        //test
+        const level = this.drill.path[this.drill.path.length-1]
+        var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: level.level, id: level.id})
         const series = await seriesObj.fetch() 
         //now draw graph
         this.chart['series'] = series
@@ -255,6 +273,7 @@ class CompareGraph {
                 return null
             }
         }
+        this._hideSelected()
         const self = this
         $('.highcharts-legend-item').mouseenter({object: this}, function(e) {
             //highlight rolled over series
@@ -273,6 +292,7 @@ class CompareGraph {
         $(this.container).empty()
         this.elements.container = $(`<div class="profile-container"></div>`).appendTo(this.container)
         this.elements.controls = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
+        this.elements.path = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
         this.elements.graph = $(`<div class="compare-graph"></div>`).appendTo(this.elements.container)
         //add some buttons
         this.elements.buttonLegend = $(`<button class="compare">Toggle Legend</button>`).appendTo(this.elements.controls)
@@ -281,14 +301,29 @@ class CompareGraph {
         //elements to select measures
         this.elements.xMeasure = $(`<label class="compare-large-margin">Horizontal Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
         this.elements.yMeasure = $(`<label class="compare-large-margin">Vertical Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
-        this.elements.buttonUpdate = $(`<button class="compare">Update Values</button>`).appendTo(this.elements.controls)
+        this.elements.buttonUpdate = $(`<button class="compare-large-margin">Update Values</button>`).appendTo(this.elements.controls)
+        //drill up button
+        if(this.drill.path.length > 1) {
+            this.drill.path.forEach((item, index) => {
+                const el = $(`<a href="" data-idx="${index}">${item.link}</a><span> > </span>`).appendTo(this.elements.path)
+            })
+            //remove last span
+            $(this.elements.path).find('span').last().remove()
+            $(this.elements.path).find('a').last().removeAttr('href')
+        }
+        const self = this
+        $(this.elements.path).find('a').click(function() {
+            self._drillToLevel($(this).data('idx'))
+            self.fetchAndDraw()
+            return false
+        })
         //dialog element for point options
         if(!this.elements.hasOwnProperty('dialog')) {
             this.elements.dialog = $(`<div id="compare-dialog" title="Loading name...">
             <div><span id="compare-dialog-profile" class="explore-dialog-link">View Profile</span></div>
-            <div><a id="compare-dialog-isolate">Isolate Category</a></div>
-            <div><a id="compare-dialog-hide">Hide Category</a></div>
-            <div><a id="compare-dialog-drilldown">Drilldown</a></div>
+            <div><span id="compare-dialog-isolate" class="explore-dialog-link">Isolate Category</span></div>
+            <div><span id="compare-dialog-hide" class="explore-dialog-link">Hide Category</span></div>
+            <div><span id="compare-dialog-drilldown" class="explore-dialog-link">Drilldown</span></div>
             </div>`).appendTo(this.elements.container)
             $(this.elements.dialog).dialog({
                 modal: true,
@@ -306,10 +341,13 @@ class CompareGraph {
         $(this.elements.xMeasure).find('select').first().val(this.x)
         $(this.elements.yMeasure).find('select').first().val(this.y)
         $(this.elements.buttonHide).click(() => {
-            this.chartObj.series.forEach((item) => item.hide())
+            this.hiddenSeries = []
+            this.chartObj.series.forEach(item => this.hiddenSeries.push(item.index))
+            this._hideSelected()
         })
         $(this.elements.buttonShow).click(() => {
-            this.chartObj.series.forEach((item) => item.show())
+            this.hiddenSeries = []
+            this._hideSelected()
         })
         $(this.elements.buttonLegend).click(() => {
             this.chartObj.legendToggle()
@@ -322,10 +360,58 @@ class CompareGraph {
         })
     }
 
+    _drill(direction, id, text) {
+        //accept up or down
+        const up = direction === 'up'
+        const pathStart = this.drill.path.length
+        //if drilling down, add a new element to the path
+        if(up) {
+            if(this.drill.path.length > 1) {
+                this.drill.path.pop()
+            }
+        } else {
+            if(this.drill.path.length === 1) {
+                //remain same level and alter id
+                this.drill.path.push({level: this.drill.path[0].level, id: id, link: text})
+            } else if(this.drill.path.length <= this.drill.levels.length) {
+                this.drill.path.push({level: this.drill.levels[this.drill.path.length - 1], id: id, link: text})
+            }
+        }
+        if(pathStart !== this.drill.path.length)
+            this.hiddenSeries = []
+            this.fetchAndDraw()
+    }
+    
+    _drillToLevel(idx) {
+        this.drill.path = this.drill.path.slice(0, idx+1)
+    }
+
+    _drillable() {
+        return this.drill.path.length <= this.drill.levels.length
+    }
+
+    _hideSelected() {
+        //hides any series whose index is in this .hiddenSeries
+        //want to keep when changing outlier handling settings
+        this.chartObj.series.forEach(item => {
+            //find if should be hidden (is in the array)
+            const show = !this.hiddenSeries.includes(item.index)
+            if(show !== item.visible) {
+                //this is not in the desired state
+                if(!show) {
+                    item.hide()
+                } else {
+                    item.show()
+                }
+            }
+            //if in the desired state leave alone
+        })
+    }
+
     _showDialog() {
-        $(this.elements.dialog).dialog('option', 'title', this.currentTooltipName)
+        $(this.elements.dialog).dialog('option', 'title', this.tooltip.name)
         //remove existing event handlers
-        $(this.elements.dialog).find('a').off()
+        $(this.elements.dialog).find('span').off()
         //attach new with correct parameters
         $('#compare-dialog-profile').click(() => {
             //close and destroy the dialog to avoid polluting dom
@@ -333,10 +419,42 @@ class CompareGraph {
             $(this.elements.dialog).dialog('destroy')
             $(this.elements.dialog).empty()
             $(this.elements.dialog).remove()
-            co_profile(this.currentTooltip)
+            co_profile(this.tooltip.id)
             return false;
         })
+        $('#compare-dialog-isolate').click((param) => {
+            this._isolateSeries(this.tooltip.seriesIdx) 
+            $(this.elements.dialog).dialog('close')
+        })
+        $('#compare-dialog-hide').click(() => {
+            this._hideSeries(this.tooltip.seriesIdx)
+            $(this.elements.dialog).dialog('close')
+        })
+        if(this._drillable()) {
+            $('#compare-dialog-drilldown').click(() => {
+                const desc = this.chartObj.series[this.tooltip.seriesIdx].userOptions.description
+                this._drill('down', desc.id, desc.name)
+                $(this.elements.dialog).dialog('close')
+            }).show()
+        } else {
+            $('#compare-dialog-drilldown').hide()
+        }
         $(this.elements.dialog).dialog("open")
+    }
+
+    _isolateSeries(idx) {
+        //hide all series except idx
+        this.hiddenSeries = []
+        this.chartObj.series.forEach(item => {
+            if(item.index !== idx)
+                this.hiddenSeries.push(item.index)
+        })
+        this._hideSelected()
+    }
+
+    _hideSeries(idx) {
+        this.hiddenSeries.push(idx)
+        this._hideSelected()
     }
 
     redraw() {
@@ -345,6 +463,7 @@ class CompareGraph {
     
     legendToggle() {
         this.chartObj.legendToggle()
+        this._hideSelected()
     }
 }
 
@@ -354,7 +473,8 @@ class CompareSeries {
         this.options = options || { }
         this.x = x
         this.y = y
-        this.level = options.indsutry || 'industry'
+        this.level = options.industry || 'section'
+        this.id = options.id || null
         this.label = options.label || function(item) { return item.description.name }
     }
     
@@ -375,7 +495,7 @@ class CompareSeries {
             var params = { }
             params[this.x] = true
             params[this.y] = true
-            const url = `./industry/${this.level}/`
+            const url = `./industry/${this.level}/${this.id === null ? '' : this.id + '/children/'}`
             const key = `${url}#${this.x}#${this.y}`
             const keyReverse = `${url}#${this.y}#${this.x}`
             var stored = await this._getLocal(key)
@@ -410,7 +530,8 @@ class CompareSeries {
             var group = { 
                 boostThreshold: 1,
                 name: self.label(element),
-                data: []
+                data: [],
+                description: element.description
             }
             var data = []
             const xValues = element[self.x]
