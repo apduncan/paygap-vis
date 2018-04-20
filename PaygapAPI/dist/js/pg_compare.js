@@ -192,11 +192,14 @@ class CompareGraph {
                     const svg = $('.highcharts-root').svg('get')
                     var hover = $('path', svg.root())
                     $(hover).each((index, path) => {
-                        if(!$(path).data().hasOwnProperty('evt_set')) {
-                            $(path).data('evt_set', true)
-                            $(path).click(function(e) {
-                                self._showDialog()
-                            })
+                        if($(path).attr('class') === undefined) {
+                            $(path).addClass('compare-hover-hand')
+                            if(!$(path).data().hasOwnProperty('evt_set')) {
+                                $(path).data('evt_set', true)
+                                $(path).click(function(e) {
+                                    self._showDialog()
+                                })
+                            }
                         }
                     })
                     return `${placeholder}<br>${self.tooltip.seriesName}<br>${msg}`
@@ -211,19 +214,6 @@ class CompareGraph {
                         enabled: true,
                         radius: 4,
                         symbol: 'circle',
-                        states: {
-                            hover: {
-                                enabled: true,
-                                lineColor: 'rgba(100,100,100)'
-                            }
-                        }
-                    },
-                    states: {
-                        hover: {
-                            marker: {
-                                enabled: true
-                            }
-                        }
                     }
                 }
             }
@@ -317,7 +307,10 @@ class CompareGraph {
             self.fetchAndDraw()
             return false
         })
-        //dialog element for point options
+        //dialog element for point option
+        //try to get existing dialog if it exists
+        if($('#compare-dialog').length > 0)
+            this.elements.dialog = $('#compare-dialog')
         if(!this.elements.hasOwnProperty('dialog')) {
             this.elements.dialog = $(`<div id="compare-dialog" title="Loading name...">
             <div><span id="compare-dialog-profile" class="explore-dialog-link">View Profile</span></div>

@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Hi</title>
+        <title>UK Gender Pay Gap Reporting 2017/8</title>
         <script src="dist/js/jquery.min.js"></script> 
         <script src="dist/js/jquery-ui.min.js"></script>
         <link rel="stylesheet" type="text/css" href="dist/css/jquery.svg.css"> 
@@ -26,6 +26,7 @@
         <script src="dist/js/pg_coprofile.js"></script>
         <script src="dist/js/pg_search.js"></script>
         <script src="dist/js/pg_compare.js"></script>
+        <script src="dist/js/pg_context.js"></script>
         <script src="start.js"></script>
         <link href="dist/css/paygap.css" rel="StyleSheet" type="text/css" media="all">
         <link href="dist/css/jquery-ui.min.css" rel="StyleSheet" type="text/css" media="all">
@@ -37,7 +38,7 @@
                         <div><a href="" class="title-link">UK Gender Pay Gap Reporting 2017/18</a></div>
                         <div class="small-normal-font">
                             <div class="radio-toggle" id="outlier-select">
-                                <input type="radio" name="outlier-select" id="outlier-off" value="off"><label for="outlier-off" class="button-height"><span class="radio-label">Show All</span></label><input type="radio" name="outlier-select" id="outlier-impossible" value="impossible" checked><label for="outlier-impossible" class="button-height"><span class="radio-label">Hide Impossible Values</span></label><input type="radio" name="outlier-select" id="outlier-outlier" value="outliers"><label for="outlier-outlier" class="button-height"><span class="radio-label">Hide Impossible Values & Outliers</span></label>
+                                <input type="radio" name="outlier-select" id="outlier-off" value="off"><label for="outlier-off" class="button-height"><span class="radio-label">Show All</span></label><input type="radio" name="outlier-select" id="outlier-impossible" value="impossible"><label for="outlier-impossible" class="button-height"><span class="radio-label">Hide Impossible Values</span></label><input type="radio" name="outlier-select" id="outlier-outlier" value="outliers" checked><label for="outlier-outlier" class="button-height"><span class="radio-label">Hide Impossible Values & Outliers</span></label>
                             </div>
                         </div>
                     </div>
@@ -50,6 +51,9 @@
                     </span>
                     <span class="header-link" id="link-compare">
                         Compare
+                    </span>
+                    <span class="header-link" id="link-context">
+                        Context
                     </span>
                 </div>
             </header>

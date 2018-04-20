@@ -26,7 +26,15 @@ const colors = {
     quartileSkew: {
         hex: '#00c16a',
         rgb: {r: 0, g: 193, b: 106}
-    }    
+    },
+    directroRatio: {
+        hex: '#8a1919',
+        rgb: {
+            r: 138,
+            g: 25,
+            b: 25,
+        }
+    }
 }
 class AjaxGraph {
     constructor (id, url, params) {
@@ -536,7 +544,8 @@ class DirectorRatioMeanSummary extends MeanSummary {
                         formatter: function() {
                             return `${this.y}%`
                         }
-                    }
+                    },
+                    color: colors.directroRatio.hex
                 }],
                 yAxis: {
                     min: 0,
@@ -605,7 +614,8 @@ class IndustryDirectorPercentage extends EvenHistogram {
                     }
                 },
                 series: [{
-                    name: '% Female Directors'
+                    name: '% Female Directors',
+                    color: colors.directroRatio.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -1112,19 +1122,24 @@ class BandedEvenHistogram extends EvenHistogram {
                 minorTickLength: 0,
                 tickLength: 0,
             },
-            series: [self._colorBands(self._binned), {
-                type: 'scatter',
-                marker: {
-                    radius: 10,
-                },
-                color: self._params.point.color,
-                radius: 10,
-                data: [{x: self._params.point.value, y: 0.5}]
-            }],
+            series: [self._colorBands(self._binned)],
             plotOptions: {
                 series: {
                     pointPadding: 0
                 }
+            }
+        }
+        if(this._params.hasOwnProperty('point')) {
+            if(this._params.point.hasOwnProperty('value')) {
+                chart.series.push({
+                    type: 'scatter',
+                    marker: {
+                        radius: 10,
+                    },
+                    color: self._params.point.color,
+                    radius: 10,
+                    data: [{x: self._params.point.value, y: 0.5}]
+                })
             }
         }
         this._set_params(chart, this._params.highcharts)
@@ -1203,7 +1218,7 @@ class BandedMeanGapPercentage extends BandedEvenHistogram {
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> mean paygap from<br> \
                         <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${(x+(self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
                         <strong>${x}%</strong> <br> mean pay gap`
                     }
                 }
@@ -1253,7 +1268,7 @@ class BandedMedianBonusGap extends BandedEvenHistogram {
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> median bonus gap from<br> \
                         <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${(x+(self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
                         <strong>${x}%</strong> <br> median bonus gap`
                     }
                 }
@@ -1303,7 +1318,7 @@ class BandedMedianGapPercentage extends BandedEvenHistogram {
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> median paygap from<br> \
                         <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
+                        <strong>${(x+(self._binned.interval)).toFixed(1)}</strong>%` : `This company has<br> \
                         <strong>${x}%</strong> <br> median pay gap`
                     }
                 }
@@ -1353,7 +1368,7 @@ class BandedWorkforcePercentage extends BandedEvenHistogram {
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> employ from<br> \
                         <strong>${parseFloat(x).toFixed(1)}</strong>% to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>% <br> women` : `This company has<br> \
+                        <strong>${(x+(self._binned.interval)).toFixed(1)}</strong>% <br> women` : `This company has<br> \
                         <strong>${x}%</strong> <br> female workforce`
                     }
                 }
@@ -1460,7 +1475,7 @@ class BandedMeanBonusGap extends BandedEvenHistogram {
                         mult = mult < 0 && mult + self._binned.interval < 0 ? -1 : 1
                         return this.series.index < 1 ? `<strong>${this.point.binCount}</strong> companies <br> have gap in mean bonus pay from<br> \
                         <strong>${parseFloat(x).toFixed(1)}%</strong> to <br>\
-                        <strong>${(x+(mult*self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
+                        <strong>${(x+(self._binned.interval)).toFixed(1)}</strong>` : `This company has<br> \
                         <strong>${x.toFixed(2)}%</strong> <br>gap in mean bonus pay`
                     }
                 },

@@ -29,4 +29,5 @@ $(document).ready(function() {
         const compare = new CompareGraph('#data-container', {})
         compare.fetchAndDraw()
     })
+    $('#link-context').click(() => new Context('#data-container'))
 })
