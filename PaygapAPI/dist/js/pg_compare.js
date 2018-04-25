@@ -2,6 +2,7 @@
 //OPTION FOR SHOWING LINEAR LEAST SQUARES LINE OF BEST FIT
 //ALLOWS SELECTION OF LEVEL TO COMPARE
 //POSSIBLY THIRD VARIABLE AS BUBBLE SIZE. POTENTIALLY ALLOW FILTERING (SO ONLY COMPANIES IN x SECTION)
+//POSSIBLY ALLOW AGGREGATING
 //Requires: UI element to select measure on Axis
 //          Select level to aggregate to, and averaging method to use
 //          Method to merge two measures in JSON to points for data (possibly move this to server? Might be easier with query)
