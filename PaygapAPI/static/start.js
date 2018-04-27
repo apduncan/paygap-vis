@@ -30,4 +30,5 @@ $(document).ready(function() {
         compare.fetchAndDraw()
     })
     $('#link-context').click(() => new Context('#data-container'))
+    $('#link-history').click(() => new History('#data-container'))
 })

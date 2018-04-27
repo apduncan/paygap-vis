@@ -533,6 +533,14 @@ button.compare, button.compare-large-margin {
 div.compare-controls {
     padding-bottom: 0.5em;
 }
+/*HISTORY STYLES*/
+div.max-width {
+    max-width: 1600px;
+    width: 90vw;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2em;
+}
 /*MODAL DISPLAY STYLES TAKEN FROM W3.CSS*/
 .w3-modal{z-index:3;display:flex;flex-direction:row;justify-content:center;align-content:center;position:fixed;left:0;top:0;width:100%;height:100%;overflow:hidden;background-color:rgb(0,0,0);background-color:rgba(0,0,0,0.4)}
 .w3-modal-content{margin:auto;background-color:#fff;position:relative;padding:0;outline:0;width:95vw;height:95vh;overflow:hidden;display:flex;flex-direction:column;align-content:stretch;}
