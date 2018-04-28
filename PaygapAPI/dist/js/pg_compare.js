@@ -92,6 +92,17 @@ class CompareGraph {
                     outliers: {max: 100, min: 0, outliers: true}
                 }
             },
+            meanPay: {
+                label: `Sector Mean Weekly Pay`,
+                formatter: function(value) {
+                    return `${value.toFixed(1)}`
+                },
+                outlierSettings: {
+                    off: false,
+                    impossible: {max: false, min: 0, outliers: false},
+                    outliers: {max: false, min: 0, outliers: true}
+                }
+            }
         }
         this.drill = {
             levels: ['section', 'industry', 'division', 'group'],

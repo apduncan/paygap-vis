@@ -174,6 +174,29 @@ async function medianBonusGap(level, id, response) {
 	return response
 }
 
+async function meanPay(level, id, response) {
+  var field = constants.sicLevels[level].field
+  var query = `SELECT co_id, pay_mean FROM paygap.company 
+  NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic LEFT JOIN paygap.pay ON TRIM(UPPER(sic.sic_code_desc)) = pay.pay_name
+  WHERE ${field} = $1 AND pay.pay_name IS NOT NULL;`
+  const { rows } = await db.query(query, [id])
+	var items = new Array()
+	for(row in rows) {
+    items.push({
+      id: rows[row]['co_id'],
+      value: parseFloat(rows[row]['pay_mean'])
+    })
+	}
+  //also want to find the global min and max to help histogram plotting
+  const minMax = await db.query('SELECT MIN(pay_mean) AS min, MAX(pay_mean) AS max FROM paygap.pay', [])
+  response['meanPay'] = {
+    items: items,
+    min: parseFloat(minMax.rows[0]['min']),
+    max: parseFloat(minMax.rows[0]['max'])
+  }
+	return response
+}
+
 async function levelInfo(level, id, response) {
   var drillUpLevel = constants.sicLevels[level]['drillUp']
   var drillUpField = null
@@ -260,6 +283,7 @@ dataFunctions['workforceFemale'] = workforceFemale
 dataFunctions['quartileSkew'] = quartileSkew
 dataFunctions['meanBonusGap'] = meanBonusGap
 dataFunctions['medianBonusGap'] = medianBonusGap
+dataFunctions['meanPay'] = meanPay
 
 //Different available routes for this resource
 
