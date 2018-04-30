@@ -178,7 +178,7 @@ async function meanPay(level, id, response) {
   var field = constants.sicLevels[level].field
   var query = `SELECT co_id, ${field}_mean_pay FROM paygap.company 
   NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic 
-  WHERE ${field} = $1;`
+  WHERE ${field} = $1 AND ${field}_mean_pay > 0;`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {

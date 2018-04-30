@@ -16,9 +16,10 @@ class CompareGraph {
     constructor(container, params) {
         this.measures = {
             quartileSkew: {
+                key: 'quartileSkew',
                 label: 'Quartile Skew',
                 formatter: function(value) {
-                    return value.toFixed(1)
+                    return value.toFixed(2)
                 },
                 outlierSettings: {
                     off: false,
@@ -27,6 +28,7 @@ class CompareGraph {
                 }
             },
             meanGap: {
+                key: 'meanGap',
                 label: `Mean Pay Gap`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -38,6 +40,7 @@ class CompareGraph {
                 }
             },
             medianGap: {
+                key: 'medianGap',
                 label: `Median Pay Gap`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -49,6 +52,7 @@ class CompareGraph {
                 }
             },
             meanBonusGap: {
+                key: 'meanBonusGap',
                 label: `Mean Bonus Pay Gap`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -60,6 +64,7 @@ class CompareGraph {
                 }
             },
             medianBonusGap: {
+                key: 'medianBonusGap',
                 label: `Median Bonus Pay Gap`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -71,6 +76,7 @@ class CompareGraph {
                 }
             },
             directorRatio: {
+                key: 'directorRatio',
                 label: `Female Directors (%)`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -82,6 +88,7 @@ class CompareGraph {
                 }
             },
             workforceFemale: {
+                key: 'workforceFemale',
                 label: `Workforce Female (%)`,
                 formatter: function(value) {
                     return `${value.toFixed(1)}%`
@@ -93,9 +100,10 @@ class CompareGraph {
                 }
             },
             meanPay: {
+                key: 'meanPay',
                 label: `Sector Mean Weekly Pay`,
                 formatter: function(value) {
-                    return `${value.toFixed(1)}`
+                    return `£${value.toFixed(0)}`
                 },
                 outlierSettings: {
                     off: false,
@@ -104,24 +112,119 @@ class CompareGraph {
                 }
             }
         }
+        
+        this.container = container
+        this.elements = {}
+        this.x = this.measures[params.x] || this.measures['quartileSkew']
+        this.y = this.measures[params.y] || this.measures['meanGap']
+        this.chartTypes = {scatter: {key: 'scatter',class: CompareScatter}, bubble: {key: 'bubble', class: CompareBubble}}
+        this.chartType = this.chartTypes.scatter 
+        const self = this
+        // this.chartDefaults['bubble'] = {
+        //     chart: {
+        //         type: 'bubble',
+        //         plotBorderWidth: 1,
+        //         zoomType: 'xy'
+        //     },
+        
+        //     legend: {
+        //         enabled: false
+        //     }
+        // }
+        //register as the div controller
+        $(this.container).data('controller', this)
+        $(this.container).attr('data-controlled', true)
+        //if there is a toggle button attached, attach an event
+ 
+    }
+
+    async fetchAndDraw() {
+        this._drawStructure()
+        this.chartObj = new this.chartType.class(this.x, this.y, this.elements.graph, {
+            path: this.elements.path,
+            controls: this.elements.contextControls
+        })
+    }
+
+    _drawStructure() {
+        //draw structural elements - div for legend, and measure selections
+        $(this.container).empty()
+        this.elements.container = $(`<div class="profile-container"></div>`).appendTo(this.container)
+        this.elements.controls = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
+        this.elements.contextControls = $(`<span class="compare-large-margin"></span>`).appendTo(this.elements.controls)
+        this.elements.path = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
+        this.elements.graph = $(`<div class="compare-graph"></div>`).appendTo(this.elements.container)
+        //elements to select measures
+        this.elements.xMeasure = $(`<label class="compare-large-margin">Horizontal Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
+        this.elements.yMeasure = $(`<label class="compare-large-margin">Vertical Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
+        this.elements.buttonUpdate = $(`<button class="compare-large-margin">Update Values</button>`).appendTo(this.elements.controls)
+        //switch chart type
+        this.elements.typeToggle = $(`<span class="radio-toggle"></span>`).appendTo(this.elements.controls)
+        this.elements.typeScatter = $(`<input type="radio" name="compare-type" id="scatter" value="scatter"><label for="scatter" class="button-height"><span class="radio-label">Scatter</span></label>`).appendTo(this.elements.typeToggle)
+        this.elements.typeBubble = $(`<input type="radio" name="compare-type" id="bubble" value="bubble"><label for="bubble" class="button-height"><span class="radio-label">Bubble</span></label>`).appendTo(this.elements.typeToggle)
+        //set type
+        $(this.elements.typeToggle).find(`input[type=radio][value=${this.chartType.key}]`).prop('checked', true)
+        //handlers for changing type
+        const self = this
+        $(this.elements.typeToggle).find('input').change(function() {
+            self.changeType($(this).val()) 
+        })
+        //add available measures to this dropdown
+        Object.keys(this.measures).forEach((key) => {
+            $('.compare-measure').append(`<option value="${key}">${this.measures[key].label}</option>`)
+            console.log(this.measures[key])
+        })
+        //set default values
+        $(this.elements.xMeasure).find('select').first().val(this.x.key)
+        $(this.elements.yMeasure).find('select').first().val(this.y.key)
+
+        $(this.elements.buttonUpdate).click(() => {
+            const x = this.measures[$(this.elements.xMeasure).find('select').first().val()]
+            const y = this.measures[$(this.elements.yMeasure).find('select').first().val()]
+            this.x = x
+            this.y = y
+            this.chartObj.setMeasures(x, y)
+        })
+    }
+
+    changeType(el) {
+        this.chartType = this.chartTypes[el]
+        this.chartObj = new this.chartType.class(this.x, this.y, this.elements.graph, {
+            path: this.elements.path,
+            controls: this.elements.contextControls
+        })
+    }
+    redraw() {
+        this.chartObj.redraw()
+    }
+}
+
+class CompareScatter {
+    //scatter graph comparator, handles all drill interactions
+    constructor(x, y, container, options) {
+        //x / y should be measure objects rather than just keys
+        this.x = x
+        this.y = y
+        this.container = container
+        this.elements = {
+            path: options.path,
+            controls: options.controls
+        }
+        this.path = options.path
+        this.controls = options.controls
+        this.level = options.level || 'section'
+        this.id = options.id || null
+        //properties for handling clickable point interactions
+        this.pendingAjax = null
+        this.tooltip = {}
+        this.hiddenSeries = []
         this.drill = {
             levels: ['section', 'industry', 'division', 'group'],
             path: [{level: 'section', id: null, link: 'ALL'}]
         }
-        this.container = container
-        this.elements = {}
-        this.x = params.x || 'quartileSkew'
-        this.y = params.y || 'meanGap'
-        this.level = 'section'
-        this.id = null
-        this.chart = params.highcharts || { }
-        this.pendingAjax = null
-        this.tooltip = {}
-        this.hiddenSeries = []
-        this.chartType = 'bubble'
         const self = this
-        this.chartDefaults = []
-        this.chartDefaults['scatter'] = {
+        this.chart = {}
+        this.chartDefaults = {
             chart: {
                 type: 'scatter',
                 zoomType: 'xy'
@@ -132,15 +235,21 @@ class CompareGraph {
             xAxis: {
                 title: {
                     enabled: true,
-                    // text: this.measures[this.x].label
                 },
                 startOnTick: true,
                 endOnTick: true,
-                showLastLabel: true
+                showLastLabel: true,
+                labels: {
+                    formatter: function() {
+                        return self.x.formatter(this.value)
+                    }
+                }
             },
             yAxis: {
-                title: {
-                    // text: this.measures[this.y].label 
+                labels: {
+                    formatter: function() {
+                        return self.y.formatter(this.value)
+                    }
                 }
             },
             legend: {
@@ -164,9 +273,7 @@ class CompareGraph {
                 useGPUTranslations: true
             },
             tooltip: {
-                // headerFormat: '<b>{series.name}</b><br>',
-                // pointFormat: '{point.x} cm, {point.y} kg'
-                //ajax tooltop load from https://stackoverflow.com/questions/26225243/highcharts-load-data-with-ajax-to-populate-the-tooltip
+                //ajax tooltip load from https://stackoverflow.com/questions/26225243/highcharts-load-data-with-ajax-to-populate-the-tooltip
                 useHTML: true,
                 formatter: function() {
                     var point = this.point
@@ -175,8 +282,8 @@ class CompareGraph {
                     }
                     //set this as the point being hovered
                     // self.currentTooltip = point.id
-                    const xMeasure = self.measures[self.x]
-                    const yMeasure = self.measures[self.y]
+                    const xMeasure = self.x 
+                    const yMeasure = self.y
                     var placeholder = '' 
                     // self.currentTooltipName = 'Loading...'
                     self.tooltip.seriesIdx = point.series.index
@@ -232,90 +339,23 @@ class CompareGraph {
                 }
             }
         }
-        this.chartDefaults['bubble'] = {
-            chart: {
-                type: 'bubble',
-                plotBorderWidth: 1,
-                zoomType: 'xy'
-            },
-        
-            legend: {
-                enabled: false
-            }
-        }
-        //register as the div controller
-        $(this.container).data('controller', this)
-        $(this.container).attr('data-controlled', true)
-        //if there is a toggle button attached, attach an event
-        if(params.hasOwnProperty('legendToggle')) {
-            $(params.legendToggle).click(function() {
-                this.legendToggle()
-            })
-        }
+        this.fetchAndDraw()
     }
-
-    async fetchAndDraw() {
-        $(this.container).empty().append(`<div class="loader"><div></div></div>`)
-        //get data
-        const level = this.drill.path[this.drill.path.length-1]
-        var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: level.level, id: level.id})
-        const series = await seriesObj.fetch() 
-        //now draw graph
-        this.chart['series'] = series
-        this.chart.xAxis = {
-            title: {
-                text: this.measures[this.x].label
-            }
-        }
-        this.chart.yAxis = {
-            title: {
-                text: this.measures[this.y].label
-            }
-        }
-        const chart = Highcharts.merge(this.chart, this.chartDefaults[this.chartType])
-        this._drawStructure()
-        $(this.elements.graph).highcharts(chart)
-        this.chartObj = $(this.elements.graph).highcharts()
-        //attach event handlers to the legend items
-        function classParse(classList) {
-            const re = /highcharts-series-(\d{0,2})/
-            const res = re.exec(classList)
-            if(res !== null) {
-                return res[1]
-            } else {
-                return null
-            }
-        }
-        this._hideSelected()
-        const self = this
-        $('.highcharts-legend-item').mouseenter({object: this}, function(e) {
-            //highlight rolled over series
-            //find the series this relates to
-            var self = e.data.object
-            const classAttr = $(this).attr('class')
-            var index = classParse(classAttr)
-            //get the series
-            var series = self.chartObj.series[index]
-            //TODO - WANT TO HIGHLIGHT ROLLEDOVER SERIES BUT NOT WORKING
-        })
-    }
-
+    
     _drawStructure() {
-        //draw structural elements - div for legend, and measure selections
-        $(this.container).empty()
-        this.elements.container = $(`<div class="profile-container"></div>`).appendTo(this.container)
-        this.elements.controls = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
-        this.elements.path = $(`<div class="compare-controls"></div>`).appendTo(this.elements.container)
-        this.elements.graph = $(`<div class="compare-graph"></div>`).appendTo(this.elements.container)
+        //draw controls unique to the scatter comparator
         //add some buttons
+        $(this.elements.controls).empty()
         this.elements.buttonLegend = $(`<button class="compare">Toggle Legend</button>`).appendTo(this.elements.controls)
         this.elements.buttonHide = $(`<button class="compare">Hide All</button>`).appendTo(this.elements.controls)
         this.elements.buttonShow = $(`<button class="compare-large-margin">Show All</button>`).appendTo(this.elements.controls)
-        //elements to select measures
-        this.elements.xMeasure = $(`<label class="compare-large-margin">Horizontal Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
-        this.elements.yMeasure = $(`<label class="compare-large-margin">Vertical Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
-        this.elements.buttonUpdate = $(`<button class="compare-large-margin">Update Values</button>`).appendTo(this.elements.controls)
-        //drill up button
+        //attach event handler to a graph toggle
+        // if(params.hasOwnProperty('legendToggle')) {
+        //     $(params.legendToggle).click(function() {
+        //         this.legendToggle()
+        //     })
+        // }
+        $(this.elements.path).empty()
         if(this.drill.path.length > 1) {
             this.drill.path.forEach((item, index) => {
                 const el = $(`<a href="" data-idx="${index}">${item.link}</a><span> > </span>`).appendTo(this.elements.path)
@@ -340,7 +380,7 @@ class CompareGraph {
             <div><span id="compare-dialog-isolate" class="explore-dialog-link">Isolate Category</span></div>
             <div><span id="compare-dialog-hide" class="explore-dialog-link">Hide Category</span></div>
             <div><span id="compare-dialog-drilldown" class="explore-dialog-link">Drilldown</span></div>
-            </div>`).appendTo(this.elements.container)
+            </div>`).appendTo(this.container)
             $(this.elements.dialog).dialog({
                 modal: true,
                 autoOpen: false,
@@ -348,14 +388,6 @@ class CompareGraph {
                 width: 400
             })
         }
-        //add available measures to this dropdown
-        Object.keys(this.measures).forEach((key) => {
-            $('.compare-measure').append(`<option value="${key}">${this.measures[key].label}</option>`)
-            console.log(this.measures[key])
-        })
-        //set default values
-        $(this.elements.xMeasure).find('select').first().val(this.x)
-        $(this.elements.yMeasure).find('select').first().val(this.y)
         $(this.elements.buttonHide).click(() => {
             this.hiddenSeries = []
             this.chartObj.series.forEach(item => this.hiddenSeries.push(item.index))
@@ -369,10 +401,57 @@ class CompareGraph {
             this.chartObj.legendToggle()
             this.chartObj.series.forEach((item) => item.show())
         })
-        $(this.elements.buttonUpdate).click(() => {
-            this.x = $(this.elements.xMeasure).find('select').first().val()
-            this.y = $(this.elements.yMeasure).find('select').first().val()
-            this.fetchAndDraw()
+    }
+
+    setMeasures(x, y) {
+        this.x = x
+        this.y = y
+        this.fetchAndDraw()
+    }
+
+    async fetchAndDraw() {
+        $(this.container).empty().append(`<div class="loader"><div></div></div>`)
+        this._drawStructure()
+        //get data
+        const level = this.drill.path[this.drill.path.length-1]
+        var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: level.level, id: level.id, aggregate: false})
+        const series = await seriesObj.fetch() 
+        //now draw graph
+        this.chart['series'] = series
+        this.chart.xAxis = {
+            title: {
+                text: this.x.label
+            }
+        }
+        this.chart.yAxis = {
+            title: {
+                text: this.y.label
+            }
+        }
+        const chart = Highcharts.merge(this.chart, this.chartDefaults)
+        $(this.container).highcharts(chart)
+        this.chartObj = $(this.container).highcharts()
+        //attach event handlers to the legend items
+        function classParse(classList) {
+            const re = /highcharts-series-(\d{0,2})/
+            const res = re.exec(classList)
+            if(res !== null) {
+                return res[1]
+            } else {
+                return null
+            }
+        }
+        this._hideSelected()
+        const self = this
+        $('.highcharts-legend-item').mouseenter({object: this}, function(e) {
+            //highlight rolled over series
+            //find the series this relates to
+            var self = e.data.object
+            const classAttr = $(this).attr('class')
+            var index = classParse(classAttr)
+            //get the series
+            var series = self.chartObj.series[index]
+            //TODO - WANT TO HIGHLIGHT ROLLEDOVER SERIES BUT NOT WORKING
         })
     }
 
@@ -483,136 +562,105 @@ class CompareGraph {
     }
 }
 
-class CompareScatter {
-    //scatter graph comparator, handles all drill interactions
+class CompareBubble {
     constructor(x, y, container, options) {
-        //x / y should be measure objects rather than just keys
         this.x = x
         this.y = y
-        this.container = container
-        this.level = options.level || 'section'
-        this.id = options.id || null
-        //properties for handling clickable point interactions
-        this.pendingAjax = null
-        this.tooltip = {}
-        this.hiddenSeries = []
+        this.elements = {
+            container: container,
+            controls: options.controls,
+            path: options.path
+        }
+        this.chart = {}
         const self = this
-        this.chartDefaults = {
+        this.chartDefaults =  { 
             chart: {
-                type: 'scatter',
+                type: 'bubble',
+                plotBorderWidth: 1,
                 zoomType: 'xy'
+            },
+        
+            legend: {
+                enabled: false
             },
             title: {
                 text: ''
             },
-            xAxis: {
-                title: {
-                    enabled: true,
-                },
-                startOnTick: true,
-                endOnTick: true,
-                showLastLabel: true
-            },
-            legend: {
-                layout: 'vertical',
-                align: 'left',
-                verticalAlign: 'top',
-                x: 5,
-                y: 5,
-                floating: false,
-                backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF',
-                borderWidth: 1,
-                navigation: {
-                    animation: true
-                },
-                itemMarginBottom: 4,
-                itemStyle: {
-                    width: 300
-                }
-            },
-            boost: {
-                useGPUTranslations: true
-            },
             tooltip: {
-                //ajax tooltip load from https://stackoverflow.com/questions/26225243/highcharts-load-data-with-ajax-to-populate-the-tooltip
                 useHTML: true,
                 formatter: function() {
-                    var point = this.point
-                    if (self.pendingAjax){
-                      self.pendingAjax.abort()
-                    }
-                    //set this as the point being hovered
-                    // self.currentTooltip = point.id
-                    const xMeasure = self.measures[self.x]
-                    const yMeasure = self.measures[self.y]
-                    var placeholder = '' 
-                    // self.currentTooltipName = 'Loading...'
-                    self.tooltip.seriesIdx = point.series.index
-                    self.tooltip.name = 'Loading...'
-                    self.tooltip.id = point.id
-                    self.tooltip.seriesName = point.series.name
-                    var msg = `${xMeasure.label}: ${xMeasure.formatter(point.x)}, \
-                    ${yMeasure.label}: ${yMeasure.formatter(point.y)}`
-                    if(!point.options.hasOwnProperty('co_name')) {
-                        placeholder = 'Finding company...'
-                        self.pendingAjax = $.ajax({
-                        dataType: "json",
-                        url: `./company/${point.id}`,
-                        success: function(ajax){
-                            point.options.co_name = ajax.co_name
-                            self.tooltip.name = ajax.co_name
-                            var tt = point.series.chart.tooltip
-                            tt.label.textSetter(`<b>${ajax.co_name}</b><br>${self.tooltip.seriesName}<br>${msg}`)
-                        }
-                        })
-                    } else {
-                        self.tooltip.name = point.options.co_name
-                        placeholder = `<b>${point.options.co_name}</b>`
-                    }
-                    //associate an event with the newly created hover element
-                    $('.highcharts-root').svg()
-                    const svg = $('.highcharts-root').svg('get')
-                    var hover = $('path', svg.root())
-                    $(hover).each((index, path) => {
-                        if($(path).attr('class') === undefined) {
-                            $(path).addClass('compare-hover-hand')
-                            if(!$(path).data().hasOwnProperty('evt_set')) {
-                                $(path).data('evt_set', true)
-                                $(path).click(function(e) {
-                                    self._showDialog()
-                                })
-                            }
-                        }
-                    })
-                    return `${placeholder}<br>${self.tooltip.seriesName}<br>${msg}`
+                    const point = this.point
+                    return `<b>${point.description.name}</b>
+                    <br>${point.z} companies with average
+                    <br>${self.x.label} of ${self.x.formatter(point.x)}
+                    <br>${self.y.label} of ${self.y.formatter(point.y)}`
                 }
             },
-            plotOptions: {
-                scatter: {
-                    turboThreshold: 15000,
-                    animation: false,
-                    shape: 'circle',
-                    marker: {
-                        enabled: true,
-                        radius: 4,
-                        symbol: 'circle',
+            yAxis: {
+                labels: {
+                    formatter: function() {
+                        return self.y.formatter(this.value)
+                    }
+                }
+            },
+            xAxis: {
+                labels: {
+                    formatter: function() {
+                        return self.x.formatter(this.value)
                     }
                 }
             }
         }
         this.fetchAndDraw()
     }
-    
-    _drawStructure() {
-        //draw controls unique to the scatter comparator
+
+    async fetchAndDraw() {
+        //clear path as this is not used
+        $(this.elements.path).empty()
+        $(this.elements.controls).empty()
+        $(this.container).empty().append(`<div class="loader"><div></div></div>`)
+        const series = await new CompareSeries(this.x, this.y, {aggreate: true, level: 'section', id: null}).fetch()
+        this.chart['series'] = [{data: series}]
+        this.chart.xAxis = {
+            title: {
+                text: this.x.label
+            }
+        }
+        this.chart.yAxis = {
+            title: {
+                text: this.y.label
+            }
+        }
+        const chart = Highcharts.merge(this.chart, this.chartDefaults)
+        $(this.elements.container).highcharts(chart)
+        this.chartObj = $(this.elements.container).highcharts()
     }
 
-    _drawGraph(data) {
-        //draw the graph
+    setMeasures(x,y) {
+        this.x = x
+        this.y = y
+        this.fetchAndDraw()
     }
 
-    fetchAndDraw() {
-        //get data and draw graph
+    redraw() {
+        this.fetchAndDraw()
+    }
+}
+
+class BubbleNode {
+    //tree node used to represent the splitting / combining operation of the bubble comparer
+    constructor(parent, point) {
+        this.children = []
+        this.parent = parent
+        this.point = point
+        this.series = []
+    }
+
+    addChild(point) {
+        //push point from series out into it's own child
+        var child = new BubbleNode(this, point)
+        //remove point from series
+        this.series = this.series.filter((item) => {(point.description.id !== item.description.id) || (point.description.level.fiedl !== item.description.level.id)})
     }
 }
 
@@ -624,7 +672,7 @@ class CompareSeries {
         this.y = y
         this.level = options.industry || 'section'
         this.id = options.id || null
-        this.aggregate = options.aggregate || true
+        this.aggregate = options.hasOwnProperty('aggregate') ? options.aggregate : true
         this.label = options.label || function(item) { return item.description.name }
     }
     
@@ -643,11 +691,11 @@ class CompareSeries {
         return new Promise(async (resolve, reject) => {
             //compose request
             var params = { }
-            params[this.x] = true
-            params[this.y] = true
+            params[this.x.key] = true
+            params[this.y.key] = true
             const url = `./industry/${this.level}/${this.id === null ? '' : this.id + '/children/'}`
-            const key = `${url}#${this.x}#${this.y}`
-            const keyReverse = `${url}#${this.y}#${this.x}`
+            const key = `${url}#${this.x.key}#${this.y.key}`
+            const keyReverse = `${url}#${this.y.key}#${this.x.key}`
             var stored = await this._getLocal(key)
             if(stored === null) {
                 stored = await this._getLocal(keyReverse)
@@ -663,7 +711,7 @@ class CompareSeries {
                 .done(function(data) {
                     stored = self._format(data)
                     //store result
-                    const thisKey = `${url}#${self.x}#${self.y}`
+                    const thisKey = `${url}#${self.x.key}#${self.y.key}`
                     const copy = stored.map(a => ({...a}))
                     localforage.setItem(thisKey, copy)
                     stored.forEach((group, index) => stored[index] = self._handleOutliers(group))
@@ -683,7 +731,7 @@ class CompareSeries {
                 //find mean
                 var bubble = {}
                 dimensions.forEach(dim => {
-                    const total = group.data.map(item => item[dim]).reduce((total, i) => total + i)
+                    const total = group.data.map(item => item[dim]).reduce((total, i) => total + i, 0)
                     const mean = total / group.data.length
                     bubble[dim] = mean
                 })
@@ -692,8 +740,9 @@ class CompareSeries {
                 bubble.name = group.name
                 bubbles.push(bubble)
             })
+            return bubbles
         }
-        return bubbles
+        return data
     }
 
     _format(data) {
@@ -708,8 +757,8 @@ class CompareSeries {
                 description: element.description
             }
             var data = []
-            const xValues = element[self.x]
-            const yValues = element[self.y]
+            const xValues = element[self.x.key]
+            const yValues = element[self.y.key]
             xValues.items.forEach(element => {
                 data[element.id] = element.value
             })
@@ -726,7 +775,7 @@ class CompareSeries {
 
     _handleOutliers(group) {
         const outliers = getOutliers() 
-        const settings = {x: this.options.measures[this.x].outlierSettings[outliers], y: this.options.measures[this.y].outlierSettings[outliers]}
+        const settings = {x: this.x.outlierSettings[outliers], y: this.y.outlierSettings[outliers]}
         const props = ['x', 'y']
         var outlierList = []
         if(outliers !== 'off') {
