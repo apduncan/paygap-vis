@@ -176,19 +176,19 @@ async function medianBonusGap(level, id, response) {
 
 async function meanPay(level, id, response) {
   var field = constants.sicLevels[level].field
-  var query = `SELECT co_id, pay_mean FROM paygap.company 
-  NATURAL JOIN paygap.company_sic NATURAL JOIN paygap.sic LEFT JOIN paygap.pay ON TRIM(UPPER(sic.sic_code_desc)) = pay.pay_name
-  WHERE ${field} = $1 AND pay.pay_name IS NOT NULL;`
+  var query = `SELECT co_id, ${field}_mean_pay FROM paygap.company 
+  NATURAL JOIN paygap.company_sic_null NATURAL JOIN paygap.sic 
+  WHERE ${field} = $1;`
   const { rows } = await db.query(query, [id])
 	var items = new Array()
 	for(row in rows) {
     items.push({
       id: rows[row]['co_id'],
-      value: parseFloat(rows[row]['pay_mean'])
+      value: parseFloat(rows[row][`${field}_mean_pay`])
     })
 	}
   //also want to find the global min and max to help histogram plotting
-  const minMax = await db.query('SELECT MIN(pay_mean) AS min, MAX(pay_mean) AS max FROM paygap.pay', [])
+  const minMax = await db.query(`SELECT MIN(${field}_mean_pay) AS min, MAX(${field}_mean_pay) AS max FROM paygap.sic`, [])
   response['meanPay'] = {
     items: items,
     min: parseFloat(minMax.rows[0]['min']),
@@ -335,7 +335,8 @@ router.get('/:level/:id/children', async (req, res) => {
   for(code in codes) {
     var item = new Object()
     var row = codes[code]
-		//add child level info
+    //add child level info
+    console.log(childLevel)
 		item = await buildResponse(childKey, row[childLevel.field], item, req)
     items.push(item)
   }

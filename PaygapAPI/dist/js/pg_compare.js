@@ -118,8 +118,10 @@ class CompareGraph {
         this.pendingAjax = null
         this.tooltip = {}
         this.hiddenSeries = []
+        this.chartType = 'bubble'
         const self = this
-        this.chartDefaults = {
+        this.chartDefaults = []
+        this.chartDefaults['scatter'] = {
             chart: {
                 type: 'scatter',
                 zoomType: 'xy'
@@ -230,6 +232,17 @@ class CompareGraph {
                 }
             }
         }
+        this.chartDefaults['bubble'] = {
+            chart: {
+                type: 'bubble',
+                plotBorderWidth: 1,
+                zoomType: 'xy'
+            },
+        
+            legend: {
+                enabled: false
+            }
+        }
         //register as the div controller
         $(this.container).data('controller', this)
         $(this.container).attr('data-controlled', true)
@@ -244,8 +257,6 @@ class CompareGraph {
     async fetchAndDraw() {
         $(this.container).empty().append(`<div class="loader"><div></div></div>`)
         //get data
-        // var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: this.level, id: this.id})
-        //test
         const level = this.drill.path[this.drill.path.length-1]
         var seriesObj = new CompareSeries(this.x, this.y, {measures: this.measures, industry: level.level, id: level.id})
         const series = await seriesObj.fetch() 
@@ -261,7 +272,7 @@ class CompareGraph {
                 text: this.measures[this.y].label
             }
         }
-        const chart = Highcharts.merge(this.chart, this.chartDefaults)
+        const chart = Highcharts.merge(this.chart, this.chartDefaults[this.chartType])
         this._drawStructure()
         $(this.elements.graph).highcharts(chart)
         this.chartObj = $(this.elements.graph).highcharts()
@@ -472,6 +483,139 @@ class CompareGraph {
     }
 }
 
+class CompareScatter {
+    //scatter graph comparator, handles all drill interactions
+    constructor(x, y, container, options) {
+        //x / y should be measure objects rather than just keys
+        this.x = x
+        this.y = y
+        this.container = container
+        this.level = options.level || 'section'
+        this.id = options.id || null
+        //properties for handling clickable point interactions
+        this.pendingAjax = null
+        this.tooltip = {}
+        this.hiddenSeries = []
+        const self = this
+        this.chartDefaults = {
+            chart: {
+                type: 'scatter',
+                zoomType: 'xy'
+            },
+            title: {
+                text: ''
+            },
+            xAxis: {
+                title: {
+                    enabled: true,
+                },
+                startOnTick: true,
+                endOnTick: true,
+                showLastLabel: true
+            },
+            legend: {
+                layout: 'vertical',
+                align: 'left',
+                verticalAlign: 'top',
+                x: 5,
+                y: 5,
+                floating: false,
+                backgroundColor: (Highcharts.theme && Highcharts.theme.legendBackgroundColor) || '#FFFFFF',
+                borderWidth: 1,
+                navigation: {
+                    animation: true
+                },
+                itemMarginBottom: 4,
+                itemStyle: {
+                    width: 300
+                }
+            },
+            boost: {
+                useGPUTranslations: true
+            },
+            tooltip: {
+                //ajax tooltip load from https://stackoverflow.com/questions/26225243/highcharts-load-data-with-ajax-to-populate-the-tooltip
+                useHTML: true,
+                formatter: function() {
+                    var point = this.point
+                    if (self.pendingAjax){
+                      self.pendingAjax.abort()
+                    }
+                    //set this as the point being hovered
+                    // self.currentTooltip = point.id
+                    const xMeasure = self.measures[self.x]
+                    const yMeasure = self.measures[self.y]
+                    var placeholder = '' 
+                    // self.currentTooltipName = 'Loading...'
+                    self.tooltip.seriesIdx = point.series.index
+                    self.tooltip.name = 'Loading...'
+                    self.tooltip.id = point.id
+                    self.tooltip.seriesName = point.series.name
+                    var msg = `${xMeasure.label}: ${xMeasure.formatter(point.x)}, \
+                    ${yMeasure.label}: ${yMeasure.formatter(point.y)}`
+                    if(!point.options.hasOwnProperty('co_name')) {
+                        placeholder = 'Finding company...'
+                        self.pendingAjax = $.ajax({
+                        dataType: "json",
+                        url: `./company/${point.id}`,
+                        success: function(ajax){
+                            point.options.co_name = ajax.co_name
+                            self.tooltip.name = ajax.co_name
+                            var tt = point.series.chart.tooltip
+                            tt.label.textSetter(`<b>${ajax.co_name}</b><br>${self.tooltip.seriesName}<br>${msg}`)
+                        }
+                        })
+                    } else {
+                        self.tooltip.name = point.options.co_name
+                        placeholder = `<b>${point.options.co_name}</b>`
+                    }
+                    //associate an event with the newly created hover element
+                    $('.highcharts-root').svg()
+                    const svg = $('.highcharts-root').svg('get')
+                    var hover = $('path', svg.root())
+                    $(hover).each((index, path) => {
+                        if($(path).attr('class') === undefined) {
+                            $(path).addClass('compare-hover-hand')
+                            if(!$(path).data().hasOwnProperty('evt_set')) {
+                                $(path).data('evt_set', true)
+                                $(path).click(function(e) {
+                                    self._showDialog()
+                                })
+                            }
+                        }
+                    })
+                    return `${placeholder}<br>${self.tooltip.seriesName}<br>${msg}`
+                }
+            },
+            plotOptions: {
+                scatter: {
+                    turboThreshold: 15000,
+                    animation: false,
+                    shape: 'circle',
+                    marker: {
+                        enabled: true,
+                        radius: 4,
+                        symbol: 'circle',
+                    }
+                }
+            }
+        }
+        this.fetchAndDraw()
+    }
+    
+    _drawStructure() {
+        //draw controls unique to the scatter comparator
+    }
+
+    _drawGraph(data) {
+        //draw the graph
+    }
+
+    fetchAndDraw() {
+        //get data and draw graph
+    }
+}
+
 class CompareSeries {
     //fetches a set of measures at a specified level, and formats them appropriately for a bubble chart
     constructor(x, y, options) {
@@ -480,6 +624,7 @@ class CompareSeries {
         this.y = y
         this.level = options.industry || 'section'
         this.id = options.id || null
+        this.aggregate = options.aggregate || true
         this.label = options.label || function(item) { return item.description.name }
     }
     
@@ -510,6 +655,7 @@ class CompareSeries {
             if(stored !== null) {
                 const self = this
                 stored.forEach((group, index) => stored[index] = self._handleOutliers(group))
+                stored = this._aggregate(stored)
                 resolve(stored)
             } else {
                 const self = this
@@ -521,10 +667,33 @@ class CompareSeries {
                     const copy = stored.map(a => ({...a}))
                     localforage.setItem(thisKey, copy)
                     stored.forEach((group, index) => stored[index] = self._handleOutliers(group))
+                    stored = self._aggregate(stored)
                     resolve(stored)
                 })
             }
         })
+    }
+
+    _aggregate(data) {
+        //convert array of data points to a single bubble point
+        if(this.aggregate === true) {
+            var bubbles = []
+            var dimensions = ['x', 'y']
+            data.forEach((group, index) => {
+                //find mean
+                var bubble = {}
+                dimensions.forEach(dim => {
+                    const total = group.data.map(item => item[dim]).reduce((total, i) => total + i)
+                    const mean = total / group.data.length
+                    bubble[dim] = mean
+                })
+                bubble['z'] = group.data.length
+                bubble.description = group.description
+                bubble.name = group.name
+                bubbles.push(bubble)
+            })
+        }
+        return bubbles
     }
 
     _format(data) {
