@@ -29,6 +29,10 @@ $(document).ready(function() {
         const compare = new CompareGraph('#data-container', {})
         compare.fetchAndDraw()
     })
-    $('#link-context').click(() => new Context('#data-container'))
+    // $('#link-context').click(() => new Context('#data-container'))
+    $('#link-sources').click(() => {
+        $('#data-container').empty()
+        $('#data-container').append(`<iframe src="sources.html"></iframe>`)
+    })
     $('#link-history').click(() => new History('#data-container'))
 })

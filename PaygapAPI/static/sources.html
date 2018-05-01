@@ -1,0 +1,188 @@
+<html>
+    <head>
+        <link href="dist/css/paygap.css" rel="StyleSheet" type="text/css" media="all">
+        <script src="dist/js/jquery.min.js"></script> 
+    </head>
+    <body>
+       <div class="section-title">Sources</div>
+        <div data-sect="sources-measures" class="flexcontainer">
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div class="margin-bottom">Gender pay gap service</div>
+                    <div><a href="https://gender-pay-gap.service.gov.uk" target="_blank">gender-pay-gap.service.gov.uk</a></div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>A majority of the data came from the government's gender pay gap reporting serivce.
+                        Data was published as it was gathered, so small amounts were available before the official early April deadline.
+                    </p>
+                    <p>
+                        Companies were required to report several statistics about differences in overall pay between men and women, such as the difference in pay between the average man and woman.
+                    </p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div class="margin-bottom">Companies House</div> 
+                    <div><a href="https://beta.companieshouse.gov.uk/" target="_blank">beta.companieshouse.gov.uk</a></div>
+                </div>
+                <div class="explorer-padding">
+                    <p>The Companies House API was used to find detail about the current directors of companies, and which areas the company works in.</p>
+                    <p>This was limitted to companies which had provided a valid company number in the gender pay gap reporting.
+                    Several types of organisations, such a co-operative or public sector bodies, do not report to companies house, so similar details for them is not available.</p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div class="margin-bottom">genderize.io</div> 
+                    <div><a href="https://genderize.io" target="_blank">genderize.io</a></div>
+                </div>
+                <div class="explorer-padding">
+                    <p>Genderize.io provides a freely available API which will attempt to return the likely gender of a forename.
+                        Each company director retrieved from Companies House was gendered using genderize.io, and a percentage of female directors generated.
+                    </p>
+                    <p>
+                        In some case genderize is unable to predicate a gender for a forename. 
+                        When the gender of one or more directors for a company is unknown, the percentage of female directors has been left blank.
+                    </p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div class="margin-bottom">Office of National Statistics</div> 
+                    <div><a href="https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/occupation4digitsoc2010ashetable14" target="_blank">ons.gov.uk</a></div>
+                </div>
+                <div class="explorer-padding">
+                    <p>
+                        Some companies reported one or more Standard Industrial Classification (SIC) code, indicating which fields they operate in.
+                        The ONS was used to provide a heirarchical structure for these SIC codes, which are grouped at different levels.
+                        Some organisations, mostly public sector, did not report any SIC codes and they could not be scraped from Companies House.
+                        These have all been grouped into 'Unreported'.
+                    </p>
+                    <p>
+                        The average weekly pay for each SIC grouping was also added into the database.
+                        The ONS gives these estimates levels of confidence, however this uncertainty information is not represented in these visualisations.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="section-title">Measures</div>
+        <div data-sect="sources-measures" class="flexcontainer">
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Mean Pay Gap</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From the gender pay gap service.</p>
+                    <p>This is calculated by first finding the mean pay of female employees, and the mean pay of male employees.
+                       The mean pay gap is the difference between the two expressed as a percentage of mean male pay.
+                    <p>A mean pay gap of 10% would show that the mean pay for women is lower than the mean pay for men, by 10% of the mean pay for men.
+                        If the mean pay for men was £100, the mean pay for women would be £90 
+                    </p>
+                    </p>
+                    <p>Instructions from the government on calculating these figures can be found <a href="https://www.gov.uk/guidance/gender-pay-gap-reporting-make-your-calculations" target="_blank">here</a></p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Median Pay Gap</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From the gender pay gap service.</p>
+                    <p>This is calculated by first finding the median pay of female employees, and the median pay of male employees.
+                        The median pay gap is the difference between the two expressed as a percentage of median male pay.
+                    <p>A median pay gap of 10% would show that the median pay for women is lower than the median pay for men, by 10% of the median pay for men.
+                        If the median pay for men was £100, the median pay for women would be £90 
+                    </p>
+                    </p>
+                    <p>Instructions from the government on calculating these figures can be found <a href="https://www.gov.uk/guidance/gender-pay-gap-reporting-make-your-calculations" target="_blank">here</a></p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Mean Bonus Pay Gap</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From the gender pay gap service.</p>
+                    <p>This is the difference in bonuses paid to male and female employees.
+                        Where no employees were paid a bonus, this measure is blank, and will not appear on their profile or in aggregate measures.
+                    </p>
+                    <p>This is calculated by first finding the mean bonus pay of female employees, and the mean bonus pay of male employees.
+                        The mean bonus pay gap is the difference between the two expressed as a percentage of mean male bonus pay.
+                    <p>A mean bonus pay gap of 10% would show that the mean bonus pay for women is lower than the mean bonus pay for men, by 10% of the mean pay for men.
+                        If the mean bonus pay for men was £100, the mean bonus pay for women would be £90 
+                    </p>
+                    </p>
+                    <p>Instructions from the government on calculating these figures can be found <a href="https://www.gov.uk/guidance/gender-pay-gap-reporting-make-your-calculations" target="_blank">here</a></p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Median Bonus Pay Gap</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From the gender pay gap service.</p>
+                    <p>This is the difference in bonuses paid to male and female employees.
+                        Where no employees were paid a bonus, this measure is blank, and will not appear on their profile or in aggregate measures.
+                    </p>
+                    <p>This is calculated by first finding the median bonus pay of female employees, and the median bonus pay of male employees.
+                        The median bonus pay gap is the difference between the two expressed as a percentage of median male bonus pay.
+                    <p>A median bonus pay gap of 10% would show that the median bonus pay for women is lower than the median bonus pay for men, by 10% of the median pay for men.
+                        If the median bonus pay for men was £100, the median bonus pay for women would be £90 
+                    </p>
+                    </p>
+                    <p>Instructions from the government on calculating these figures can be found <a href="https://www.gov.uk/guidance/gender-pay-gap-reporting-make-your-calculations" target="_blank">here</a></p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Workforce Female</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From the gender pay gap service.</p>
+                    <p>Organisations were asked to divide their workforce into quartiles by pay, the top quartile being the 25% of their employees who were paid the most.
+                        They reported what percentage of each quartile was female, and the overall percentage of their workforce who are female is derived from this.
+                    </p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Quartile Skew</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>Derived from the gender pay gap service.</p>
+                    <p>Quartile skew represents to what extent women are likely to be the lower pay bands for this organisation.
+                        A high quartile skew suggests a greater proportion of women in the organisation are in the lower pay quartiles, and fewer in the higher quartiles.
+                        A negative quartile skew suggests the opposite, than women are more likely to be in the higher pay quartiles than lower.
+                    </p>
+                    <p>Organisations were asked to divide their workforce into quartiles by pay, the top quartile being the 25% of their employees who were paid the most.
+                        They reported what percentage of each quartile was female.</p>
+                    <p>The calculation of skew is taken from <a href="http://www.itl.nist.gov/div898/handbook/eda/section3/eda35b.htm">this page</a>, 
+                        and the population skew formula used. Each quartile is treated as being made up of 100 data points, and women in
+                         that quartile assigned value 1, 2, 3, or 4 depending on quartile</p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Female Directors</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>Derived from Companies House and genderize.io</p>
+                    <p>The percentage of this companies directors who are female, as determined by genderize.io</p>
+                    <p>If there is one or more directors whose gender is unknown, the measure is left blank for that company.</p>
+                    <p>Genderize.io returns a probability of the gender being correct for each name, however this uncertainty has not been represented in these visualisations.</p>
+                </div>
+            </div>
+            <div class="small-card card">
+                <div class="source-title section-title">
+                    <div>Sector Mean Weekly Pay</div>
+                </div> 
+                <div class="explorer-padding">
+                    <p>From Office of National Statistics</p>
+                    <p>The estimated mean weekly pay of this SIC grouping.</p>
+                    <p>Where an organisation has not reported any SIC codes, this is not available.</p>
+                    <p>The majority of organisations which did not report any SIC codes were public sector, such as NHS Trusts and local government.</p>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

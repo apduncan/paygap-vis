@@ -6,6 +6,7 @@
 //Requires: UI element to select measure on Axis
 //          Select level to aggregate to, and averaging method to use
 //          Method to merge two measures in JSON to points for data (possibly move this to server? Might be easier with query)
+var testNode;
 class Compare {
     constructor(container) {
         this.MEASURES = 'j' 
@@ -159,7 +160,7 @@ class CompareGraph {
         this.elements.yMeasure = $(`<label class="compare-large-margin">Vertical Axis <select class="compare-measure compare"></select></label>`).appendTo(this.elements.controls)
         this.elements.buttonUpdate = $(`<button class="compare-large-margin">Update Values</button>`).appendTo(this.elements.controls)
         //switch chart type
-        this.elements.typeToggle = $(`<span class="radio-toggle"></span>`).appendTo(this.elements.controls)
+        this.elements.typeToggle = $(`<span class="radio-toggle small-normal-font"></span>`).appendTo(this.elements.controls)
         this.elements.typeScatter = $(`<input type="radio" name="compare-type" id="scatter" value="scatter"><label for="scatter" class="button-height"><span class="radio-label">Scatter</span></label>`).appendTo(this.elements.typeToggle)
         this.elements.typeBubble = $(`<input type="radio" name="compare-type" id="bubble" value="bubble"><label for="bubble" class="button-height"><span class="radio-label">Bubble</span></label>`).appendTo(this.elements.typeToggle)
         //set type
@@ -318,7 +319,7 @@ class CompareScatter {
                             if(!$(path).data().hasOwnProperty('evt_set')) {
                                 $(path).data('evt_set', true)
                                 $(path).click(function(e) {
-                                    self._showDialog()
+                                    self._showDialog(e)
                                 })
                             }
                         }
@@ -503,7 +504,7 @@ class CompareScatter {
         })
     }
 
-    _showDialog() {
+    _showDialog(e) {
         $(this.elements.dialog).dialog('option', 'title', this.tooltip.name)
         //remove existing event handlers
         $(this.elements.dialog).find('span').off()
@@ -534,6 +535,7 @@ class CompareScatter {
         } else {
             $('#compare-dialog-drilldown').hide()
         }
+        $(this.elements.dialog).dialog("option", "position", {my: "center center", at: "center center", of: e})
         $(this.elements.dialog).dialog("open")
     }
 
@@ -572,6 +574,7 @@ class CompareBubble {
             path: options.path
         }
         this.chart = {}
+        this.tree = null
         const self = this
         this.chartDefaults =  { 
             chart: {
@@ -609,6 +612,21 @@ class CompareBubble {
                         return self.x.formatter(this.value)
                     }
                 }
+            },
+            plotOptions: {
+                series: {
+                    cursor: 'pointer',
+                    point: {
+                        events: {
+                            click: async function(e) {
+                                self._showDialog(this, e)
+                                // await this.series.userOptions.node.addChild(this.options)
+                                // self.fetchAndDraw()
+                            }
+                        }
+                    },
+                    animation: false
+                }
             }
         }
         this.fetchAndDraw()
@@ -618,9 +636,30 @@ class CompareBubble {
         //clear path as this is not used
         $(this.elements.path).empty()
         $(this.elements.controls).empty()
-        $(this.container).empty().append(`<div class="loader"><div></div></div>`)
+        $(this.elements.container).empty().append(`<div class="loader"><div></div></div>`)
+        //create a split / combine dialog
+        if($('#compare-bubble-dialog').length > 0)
+            this.elements.dialog = $('#compare-bubble-dialog')
+        if(!this.elements.hasOwnProperty('dialog')) {
+            this.elements.dialog = $(`<div id="compare-bubble-dialog" title="Series Name">
+            <div><span id="compare-bubble-dialog-split" class="explore-dialog-link">Split</span></div>
+            <div><span id="compare-bubble-dialog-combine" class="explore-dialog-link">Combine</span></div>
+            </div>`).appendTo(this.elements.container)
+            $(this.elements.dialog).dialog({
+                modal: true,
+                autoOpen: false,
+                height: 'auto',
+                width: 200
+            })
+        }
+ 
         const series = await new CompareSeries(this.x, this.y, {aggreate: true, level: 'section', id: null}).fetch()
-        this.chart['series'] = [{data: series}]
+        // this.chart['series'] = [{data: series}]
+        if(this.tree === null) {
+            this.tree = new BubbleTree(null, {description: {id: null, level: {drillDown: "section", urlName: "section"}}}, this.x, this.y)
+            await this.tree.fetch()
+        }
+        this.chart['series'] = this.tree.getSeries()
         this.chart.xAxis = {
             title: {
                 text: this.x.label
@@ -636,9 +675,40 @@ class CompareBubble {
         this.chartObj = $(this.elements.container).highcharts()
     }
 
+    _showDialog(point, event) {
+        console.log(point)
+        $(this.elements.dialog).dialog('option', 'title', point.options.name)
+        //remove existing event handlers
+        $(this.elements.dialog).find('span').off()
+        //attach new event handlers
+        if(point.options.description.level.drillDown !== null) {
+            $('#compare-bubble-dialog-split').show()
+            $('#compare-bubble-dialog-split').click(async (param) => {
+                await point.series.userOptions.node.addChild(point.options) 
+                $(this.elements.dialog).dialog('close')
+                this.fetchAndDraw()
+            })
+        } else {
+            $('#compare-bubble-dialog-split').hide()
+        }
+        if(point.options.description.level.drillUp !== null) {
+            $('#compare-bubble-dialog-combine').show()
+            $('#compare-bubble-dialog-combine').click(async (param) => {
+                await point.series.userOptions.node.rollUp(point.options)
+                $(this.elements.dialog).dialog('close')
+                this.fetchAndDraw()
+            })
+        } else {
+            $('#compare-bubble-dialog-combine').hide()
+        }
+        $(this.elements.dialog).dialog("option", "position", {my: "center center", at: "center center", of: event})
+        $(this.elements.dialog).dialog("open")
+        }
+
     setMeasures(x,y) {
         this.x = x
         this.y = y
+        this.tree = null
         this.fetchAndDraw()
     }
 
@@ -647,20 +717,76 @@ class CompareBubble {
     }
 }
 
-class BubbleNode {
+class BubbleTree {
     //tree node used to represent the splitting / combining operation of the bubble comparer
-    constructor(parent, point) {
+    constructor(parent, point, x, y) {
         this.children = []
+        this.x = x
+        this.y = y
         this.parent = parent
         this.point = point
         this.series = []
     }
 
-    addChild(point) {
+    async fetch() {
+        this.series = await new CompareSeries(this.x, this.y, {aggregate: true, industry: this.point.description.level.urlName, id: this.point.description.id}).fetch()
+    }
+
+    async addChild(point) {
         //push point from series out into it's own child
-        var child = new BubbleNode(this, point)
+        var child = new BubbleTree(this, point, this.x, this.y)
+        await child.fetch()
         //remove point from series
-        this.series = this.series.filter((item) => {(point.description.id !== item.description.id) || (point.description.level.fiedl !== item.description.level.id)})
+        this.series = this.series.filter(function(item) {
+            return !(point.description.id === item.description.id)
+        })
+        this.children.push(child)
+    }
+
+    async rollUp(point) {
+        //put this point back into it's parent series
+        this._traverse({post: function(node) {
+            //add point back into parent 
+            node.parent.series.push(node.point)
+            //remove point from chilren
+            node.parent.children = node.parent.children.filter(function(item) {
+                return !(item.point.description.id === node.point.description.id)
+            })
+            node.children = null
+            node.series = null
+            node.parent = null
+        }}, this)
+    }
+
+    setSeries(series) {
+        this.series = series
+    }
+
+    getSeries() {
+        //return with reference to itself so it can be programatically called
+        var allSeries = []
+        this._traverse({pre: function(node) {
+            allSeries.push({
+                data: node.series,
+                node: node
+            })
+        }}, this)
+        return allSeries
+    }
+
+    _traverse(funcs, node) {
+        const self = this
+        if(node === null) {
+            return
+        }
+        if(funcs.hasOwnProperty('pre')) {
+            funcs.pre(node)
+        }
+        node.children.forEach(function(item) {
+            self._traverse(funcs, item)
+        })
+        if(funcs.hasOwnProperty('post'))
+            funcs.post(node)
     }
 }
 
