@@ -104,7 +104,7 @@ class IndustryExplorer {
                     title: 'UK Gender Pay Gap Reporting 2017/8',
                     url: 'https://gender-pay-gap.service.gov.uk/Viewing/search-results'
                 },
-                draw: this._drawBonusMeanGap,
+                draw: this._drawBonusMedianGap,
                 min: false,
                 max: 100
             },
@@ -630,6 +630,48 @@ class IndustryExplorer {
             meanLabel[0].label.text = ''
         }
         var chart = new IndustryBonusMeanPercentage('#'+id, {
+            url: {
+                sicLevel: item.description.level.urlName,
+                id: item.description.id
+            },
+            highcharts: {
+                title: {
+                    text: ''
+                },
+                legend: {
+                    enabled: false
+                },
+                chart: {
+                    height: '50%'
+                },
+                exporting: {
+                    enabled: false
+                },
+                yAxis: {
+                    labels: {
+                        enabled: true
+                    }
+                },
+                xAxis: {
+                    plotLines: meanLabel
+                }
+            },
+            min: min,
+            max: max
+        })
+        chart.fetchAndDraw()
+    }
+
+    _drawBonusMedianGap(item, index, id, min, max) {
+        var meanLabel = [{
+            label: {
+                text: 'Mean'
+            }
+        }]
+        if(index > 0) {
+            meanLabel[0].label.text = ''
+        }
+        var chart = new IndustryBonusMedianPercentage('#'+id, {
             url: {
                 sicLevel: item.description.level.urlName,
                 id: item.description.id
