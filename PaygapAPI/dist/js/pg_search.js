@@ -41,12 +41,6 @@ class CompanySearch {
                 empty: '<p>No results</p>'
             }
         })
-
-        //add credits
-        $(this.elements.container).parent().append(`<div style="padding: 1ex; text-align: right;">Icons made by <a href="https://www.flaticon.com/authors/egor-rumyantsev" title="Egor Rumyantsev">Egor Rumyantsev</a>, <a href="https://www.flaticon.com/authors/freepik">Freepik</a>, <a href=:https://www.flaticon.com/authors/google">Google</a>
-        and <a href="https://www.flaticon.com/authors/pixel-perfect">Pixel Perfect</a> from 
-        <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-        `)
     }
 
     redraw() {
