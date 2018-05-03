@@ -838,7 +838,10 @@ class CompareSeries {
                     stored = self._format(data)
                     //store result
                     const thisKey = `${url}#${self.x.key}#${self.y.key}`
-                    const copy = stored.map(a => ({...a}))
+                    // const copy = stored.map(a => ({...a}))
+                    // the above clone method does not work in some earlier versions of firefox
+                    // using less efficient clone method of turning to JSON then parsing
+                    const copy = JSON.parse(JSON.stringify(stored))
                     localforage.setItem(thisKey, copy)
                     stored.forEach((group, index) => stored[index] = self._handleOutliers(group))
                     stored = self._aggregate(stored)
