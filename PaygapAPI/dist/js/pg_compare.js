@@ -582,7 +582,6 @@ class CompareBubble {
                 plotBorderWidth: 1,
                 zoomType: 'xy'
             },
-        
             legend: {
                 enabled: false
             },
@@ -656,7 +655,7 @@ class CompareBubble {
         const series = await new CompareSeries(this.x, this.y, {aggreate: true, level: 'section', id: null}).fetch()
         // this.chart['series'] = [{data: series}]
         if(this.tree === null) {
-            this.tree = new BubbleTree(null, {description: {id: null, level: {drillDown: "section", urlName: "section"}}}, this.x, this.y)
+            this.tree = new BubbleTree(null, {description: {id: null, name:'All', level: {drillDown: "section", urlName: "section"}}}, this.x, this.y)
             await this.tree.fetch()
         }
         this.chart['series'] = this.tree.getSeries()
@@ -671,6 +670,9 @@ class CompareBubble {
             }
         }
         const chart = Highcharts.merge(this.chart, this.chartDefaults)
+        if(this.tree.children.length > 0) {
+            chart.legend.enabled = true
+        }
         $(this.elements.container).highcharts(chart)
         this.chartObj = $(this.elements.container).highcharts()
     }
@@ -766,10 +768,13 @@ class BubbleTree {
         //return with reference to itself so it can be programatically called
         var allSeries = []
         this._traverse({pre: function(node) {
-            allSeries.push({
-                data: node.series,
-                node: node
-            })
+            if(node.series.length > 0) {
+                allSeries.push({
+                    data: node.series,
+                    name: node.point.description.name,
+                    node: node
+                })
+            }
         }}, this)
         return allSeries
     }
