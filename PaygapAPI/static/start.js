@@ -1,6 +1,7 @@
 function getOutliers() {
     return $('input[name=outlier-select]:checked', 'header').val()
 }
+var tooltips
 $(document).ready(function() {
     localforage.clear()
     //set highcharts color theme - only applies to compare
@@ -14,6 +15,7 @@ $(document).ready(function() {
     $('input[name=outlier-select]').change(function() {
         $('[data-controlled=true]').data('controller').redraw()
     })
+    tooltips = new Tooltipper()
     //var iCo = new CompanyProfile($('#data-container'), 875)
     //var iExplore = new IndustryExplorer('#data-container')
     //open at search
@@ -37,4 +39,5 @@ $(document).ready(function() {
         $('#data-container').append(`<iframe src="sources.html"></iframe>`)
     })
     $('#link-history').click(() => new History('#data-container'))
+    const tooltipper = new Tooltipper(1000)
 })

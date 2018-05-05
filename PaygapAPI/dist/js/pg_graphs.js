@@ -24,8 +24,8 @@ const colors = {
         }
     },
     quartileSkew: {
-        hex: '#00c16a',
-        rgb: {r: 0, g: 193, b: 106}
+        hex: '#33ff00',
+        rgb: {r: 51, g: 255, b: 0}
     },
     directroRatio: {
         hex: '#8a1919',
@@ -518,7 +518,7 @@ class MeanGapMeanSummary extends MeanSummary {
                             return `${this.y}%`
                         }
                     },
-                    color: '#ff6600'
+                    color: colors.meanGap.hex
                 }]
             },
             outlierSettings: {
@@ -573,7 +573,7 @@ class MedianGapMeanSummary extends MeanSummary {
             highcharts: {
                 series: [{
                     name: 'Median Pay Gap',
-                    color: '#00FF66',
+                    color: colors.medianGap.hex,
                     dataLabels: {
                         formatter: function() {
                             return `${this.y}%`
@@ -683,7 +683,7 @@ class IndustryMeanPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Mean Pay Gap',
-                    color: '#ff6600'
+                    color: colors.meanGap.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -741,7 +741,7 @@ class IndustryMedianPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Median Pay Gap',
-                    color: '#00FF66'
+                    color: colors.medianGap.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -798,7 +798,7 @@ class IndustryWorkforcePercentage extends EvenHistogram {
                 },
                 series: [{
                     name: '% Workforce Female',
-                    color: '#6600FF'
+                    color: colors.workforceFemale.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -858,7 +858,7 @@ class IndustryQuartileSkew extends EvenHistogram {
                 },
                 series: [{
                     name: 'Quartile Skew',
-                    color: '#00FF66'
+                    color: colors.quartileSkew.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -916,7 +916,7 @@ class IndustryBonusMeanPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: 'Mean Bonus Pay Gap (%)',
-                    color: '#00FF66'
+                    color: colors.meanGap.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -974,7 +974,7 @@ class IndustryBonusMedianPercentage extends EvenHistogram {
                 },
                 series: [{
                     name: 'Median Bonus Pay Gap (%)',
-                    color: '#00FF66'
+                    color: colors.medianGap.hex
                 }],
                 tooltip: {
                     formatter: function() {
@@ -1157,9 +1157,9 @@ class BandedIndustryDirectorPercentage extends BandedEvenHistogram {
         const self = this
         this._set_params(this._params, {
             color: {
-                r: 138,
-                g: 25,
-                b: 25,
+                r: colors.directroRatio.rgb.r,
+                g: colors.directroRatio.rgb.g,
+                b: colors.directroRatio.rgb.b,
                 aMin: 0,
                 aMax: 1
             },
@@ -1274,9 +1274,9 @@ class BandedMedianBonusGap extends BandedEvenHistogram {
                 }
             },
             color: {
-                r: colors.meanGap.rgb.r,
-                g: colors.meanGap.rgb.g,
-                b: colors.meanGap.rgb.b,
+                r: colors.medianGap.rgb.r,
+                g: colors.medianGap.rgb.g,
+                b: colors.medianGap.rgb.b,
                 aMin: 0,
                 aMax: 1
             },
@@ -1486,9 +1486,9 @@ class BandedMeanBonusGap extends BandedEvenHistogram {
                 }
             },
             color: {
-                r: colors.quartileSkew.rgb.r,
-                g: colors.quartileSkew.rgb.g,
-                b: colors.quartileSkew.rgb.b,
+                r: colors.meanGap.rgb.r,
+                g: colors.meanGap.rgb.g,
+                b: colors.meanGap.rgb.b,
                 aMin: 0,
                 aMax: 1
             },

@@ -189,12 +189,11 @@ class IndustryExplorer {
         const measureSelect = $(`<span class="radio-toggle explorer-left-space" id="measure-select"></span>`).appendTo(buttons)
         Object.keys(this._measures).forEach(function(element) {
             const thisMeasure = self._measures[element]
-            console.log(`Element: ${element}, Measure ${thisMeasure}`)
-            console.log(measureSelect)
-            const radioElement = $(`<input type="radio" name="measure-select" id="${element}" value="${thisMeasure.url}" ${element === self._currentMeasure.url ? 'checked' : ''}><label for="${element}" class="button-height"><span class="radio-label">${thisMeasure.name}</span></label>`).appendTo(measureSelect)
+            const radioElement = $(`<input type="radio" name="measure-select" id="${element}" value="${thisMeasure.url}" ${element === self._currentMeasure.url ? 'checked' : ''}><label for="${element}" class="button-height"><span class="radio-label" data-tooltip="${thisMeasure.url}">${thisMeasure.name}</span></label>`).appendTo(measureSelect)
             $(radioElement).click(function() {
                 self.changeMeasure(element)
             })
+            tooltips.tooltip($(radioElement).find('[data-tooltip]'))
         })
         const vert = $('<div class="explore-vert-layout"></div>').appendTo(id)
         const graphs = $('<div class="flexcontainer"></div>').appendTo(vert)

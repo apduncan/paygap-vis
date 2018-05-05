@@ -65,24 +65,25 @@ class CompanyProfile {
         })
         //draw each of the bars
         var bars = [
-            {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)', measure: 'co_diff_hourly_mean'},
-            {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)', measure: 'co_diff_hourly_median'},
-            {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)', measure: 'workforce_female'},
-            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew', round: 2}
+            {class: BandedMeanGapPercentage, value: this.data.co_diff_hourly_mean, title: 'Mean Pay Gap (%)', measure: 'co_diff_hourly_mean', tooltip: 'meanGap'},
+            {class: BandedMedianGapPercentage, value: this.data.co_diff_hourly_median, title: 'Median Pay Gap (%)', measure: 'co_diff_hourly_median', tooltip: 'medianGap'},
+            {class: BandedWorkforcePercentage, value: ((this.data.co_female_lower_band * 0.25) + (this.data.co_female_middle_band * 0.25) + (this.data.co_female_upper_band * 0.25) + (this.data.co_female_upper_quartile * 0.25)).toFixed(2), title: 'Workforce Female (%)', measure: 'workforce_female', tooltip: 'workforceFemale'},
+            {class: BandedQuartileSkew, value: this.data.quartile_skew, title: 'Quartile Skew', measure: 'quartile_skew', round: 2, tooltip: 'quartileSkew'}
         ]
         if(this.data.co_male_median_bonus > 0 || this.data.co_female_median_bonus > 0) {
-            bars.push({class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean'})
-            bars.push({class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)', measure: 'co_diff_bonus_median'})
+            bars.push({class: BandedMeanBonusGap, value: this.data.co_diff_bonus_mean, title: 'Mean Bonus Gap (%)', measure: 'co_diff_bonus_mean', tooltip: 'bonusMeanGap'})
+            bars.push({class: BandedMedianBonusGap, value: this.data.co_diff_bonus_median, title: 'Median Bonus Gap (%)', measure: 'co_diff_bonus_median', tooltip: 'bonusMedianGap'})
         }
         if(!isNaN(parseFloat(this.data.pc_female))){
-            bars.push({class: BandedIndustryDirectorPercentage, value: this.data.pc_female, title: 'Female Directors (%)', measure: 'pc_female'})
+            bars.push({class: BandedIndustryDirectorPercentage, value: this.data.pc_female, title: 'Female Directors (%)', measure: 'pc_female', tooltip: 'directorRatio'})
         }
         var measureBars = new Array() 
         for(var i in bars) {
             const bar = bars[i]
             const id = `bar${i}`
             const stack = $(`<div class="profile-vert-bar card interactable-card interactable"></div>`).appendTo(this.elements.barContainer)
-            const header = $(`<div class="profile-bar-header"></div>`).appendTo(stack)
+            const header = $(`<div class="profile-bar-header" data-tooltip="${bar.tooltip}"></div>`).appendTo(stack)
+            tooltips.tooltip(header)
             const title = $(`<div>${bar.title}</div>`).appendTo(header)
             const round = bar.round || 1
             const value = $(`<div>${parseFloat(bar.value).toFixed(round)}</div>`).appendTo(header)

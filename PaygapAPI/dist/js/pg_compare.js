@@ -6,7 +6,6 @@
 //Requires: UI element to select measure on Axis
 //          Select level to aggregate to, and averaging method to use
 //          Method to merge two measures in JSON to points for data (possibly move this to server? Might be easier with query)
-var testNode;
 class Compare {
     constructor(container) {
         this.MEASURES = 'j' 
@@ -176,8 +175,20 @@ class CompareGraph {
             console.log(this.measures[key])
         })
         //set default values
-        $(this.elements.xMeasure).find('select').first().val(this.x.key)
-        $(this.elements.yMeasure).find('select').first().val(this.y.key)
+        $(this.elements.xMeasure).find('select').first().val(this.x.key).attr('data-tooltip', this.x.key)
+        $(this.elements.yMeasure).find('select').first().val(this.y.key).attr('data-tooltip', this.y.key)
+        tooltips.tooltip($(this.elements.xMeasure).find('select').first())
+        tooltips.tooltip($(this.elements.yMeasure).find('select').first())
+        //set function to change the tooltip text on measure change
+        $('.compare-measure').change(function() {
+            const key = $(this).val()
+            $(this).attr('data-tooltip', key)
+            $(this).data('tooltip', key)
+            if($(this).data('ui-tooltip')) {
+                $(this).tooltip('destroy')
+            }
+            tooltips.tooltip(this)
+        })
 
         $(this.elements.buttonUpdate).click(() => {
             const x = this.measures[$(this.elements.xMeasure).find('select').first().val()]
