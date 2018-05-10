@@ -669,6 +669,9 @@ class CompareBubble {
                 width: 200
             })
         }
+        this.elements.twoPanel = $(`<div class="profile-two-panel"></div>`).appendTo(this.elements.container)
+        this.elements.tree = $(`<div class="compare-tree-panel"><div>`).appendTo(this.elements.twoPanel)
+        this.elements.graph = $(`<div class="compare-bubble-graph"></div>`).appendTo(this.elements.twoPanel)
         this.elements.reset = $(`<button class="compare">Reset</button>`).appendTo(this.elements.controls).click(() => this.reset())
         this.elements.showAll = $(`<button class="compare">Show All</button>`).appendTo(this.elements.controls).click(() => {
             this.tree._traverse({post: function(node) {node.visible = true}}, this.tree)
@@ -677,6 +680,7 @@ class CompareBubble {
  
         const series = await new CompareSeries(this.x, this.y, {aggreate: true, level: 'section', id: null}).fetch()
         // this.chart['series'] = [{data: series}]
+        $('.loader').remove()
         if(this.tree === null) {
             this.tree = new BubbleTree(null, {description: {id: null, name:'All', level: {drillDown: "section", urlName: "section"}}}, this.x, this.y)
             await this.tree.fetch()
@@ -692,13 +696,14 @@ class CompareBubble {
                 text: this.y.label
             }
         }
+        this.drawTree(this.elements.tree)
+        this.chart['chart'] = { width: $(this.elements.graph).width() - 15 }
         const chart = Highcharts.merge(this.chart, this.chartDefaults)
         if(this.tree.children.length > 0) {
             chart.legend.enabled = true
         }
-        $(this.elements.container).highcharts(chart)
-        this.chartObj = $(this.elements.container).highcharts()
-
+        $(this.elements.graph).highcharts(chart)
+        this.chartObj = $(this.elements.graph).highcharts()
     }
 
     _showDialog(point, event) {
@@ -769,6 +774,40 @@ class CompareBubble {
 
     redraw() {
         this.fetchAndDraw()
+    }
+
+    drawTree(div) {
+        //draw a tree structure based on uls into the requested div
+        //get structure
+        const structure = this.tree.itemTree()
+        this._drawTree(structure, div)
+    }
+
+    _drawTree(level, div) {
+        //draw one level of a tree into this div
+        const ul = $(`<ul></ul>`).appendTo(div)
+        //iterate through and add li or recursively call
+        level.forEach((item, index) => {
+            if(item.child === null) {
+                var li = null
+                if(item.point.description.level.urlName !== 'sic') {
+                    li = $(`<li><a href="" onclick="return false;">+ ${item.name}</a></li>`).appendTo(ul)
+                    $(li).click(async () => { 
+                        await item.series.addChild(item.point) 
+                        this.fetchAndDraw()
+                    })
+                } else {
+                    li = $(`<li>${item.name}</li>`).appendTo(ul)
+                }
+            } else {
+                const li = $(`<li><a href="" onclick="return false;">- ${item.name}</a></li>`).appendTo(ul)
+                $(li).click(() => {
+                    item.child.rollUp()
+                    this.fetchAndDraw()
+                })
+                this._drawTree(item.children, ul)
+            }
+        })
     }
 }
 
@@ -854,6 +893,24 @@ class BubbleTree {
         })
         if(funcs.hasOwnProperty('post'))
             funcs.post(node)
+    }
+
+    itemTree(items) {
+        //create a tree of all items and their descendents, in alphabetical order
+        items = items || []
+        var list = this.series.map((item) => { return {name: item.description.name, series: this, child: null, point: item}})
+        //push any children into this array
+        this.children.forEach((item, index) => { list.push({name: item.point.description.name, series: this, child: item, point: item}) })
+        list.sort((a,b) => a.name.localeCompare(b.name))
+        //loop through, add to items unless a child, in which case call iteratively
+        list.forEach((item, index) => {
+            if(item.child === null) {
+                items.push(item)
+            } else {
+                items.push({name: item.name, series: item.series, child: item.child, children: item.child.itemTree(), point: item})
+            }
+        })
+        return items
     }
 }
 
