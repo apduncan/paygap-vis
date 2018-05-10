@@ -619,7 +619,7 @@ class IndustryDirectorPercentage extends EvenHistogram {
                 }],
                 tooltip: {
                     formatter: function() {
-                        return `<strong>${this.y}</strong> companies have <strong>${this.x}</strong>% - <strong>${this.x+self._binned.interval}</strong>% female directors`
+                        return `<strong>${this.y}</strong> companies have <strong>${parseFloat(this.x).toFixed(1)}</strong>% - <strong>${parseFloat(this.x+self._binned.interval).toFixed(1)}</strong>% female directors`
                     }
                 }
             },
@@ -687,7 +687,7 @@ class IndustryMeanPercentage extends EvenHistogram {
                 }],
                 tooltip: {
                     formatter: function() {
-                        return `<strong>${this.y}</strong> companies<br> have a mean gap between <strong>${this.x.toFixed(1)}%</strong> - <strong>${(this.x+self._binned.interval).toFixed(1)}</strong>%`
+                        return `<strong>${this.y}</strong> companies<br> have a mean gap between <strong>${parseFloat(this.x).toFixed(1)}%</strong> - <strong>${parseFloat(this.x+self._binned.interval).toFixed(1)}</strong>%`
                     }
                 }
             },

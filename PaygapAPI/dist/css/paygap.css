@@ -254,7 +254,7 @@ div.card {
 div.interactable-card:hover {
     box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
 }
-div.interactable:hover {
+.interactable:hover {
     cursor: pointer;
 }
 div.even-histogram .highcharts-point {
@@ -527,6 +527,11 @@ div.tt-dataset-company-names p.tt-suggestion {
 }
 div.tt-dataset-company-names p.tt-suggestion:last-child {
     border-bottom: thin solid rgb(123, 73, 173);
+}
+div.tt-dataset-company-names p.tt-suggestion:hover {
+    background: rgb(197, 159, 255);
+    color: rgb(123, 73, 173);
+    font-weight: bold;
 }
 /* COMPARE STYLES */
 path.compare-hover-hand {

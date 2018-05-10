@@ -36,7 +36,7 @@ class CompanySearch {
             templates: {
                 suggestion: function(data) {
                     console.log(data)
-                    return `<p class="suggestion"><a href="" onclick="co_profile(${data.co_id}); return false;">${data.co_name}</a></p>`
+                    return `<p class="suggestion interactable" onclick="co_profile(${data.co_id})"><a href="" onclick="return false;">${data.co_name}</a></p>`
                 },
                 empty: '<p>No results</p>'
             }
