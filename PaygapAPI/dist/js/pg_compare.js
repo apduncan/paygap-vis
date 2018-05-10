@@ -635,6 +635,11 @@ class CompareBubble {
                             }
                         }
                     },
+                    events: {
+                        legendItemClick: function(e) {
+                            this.userOptions.node.visible = !this.visible
+                        }
+                    },
                     animation: false
                 }
             }
@@ -654,6 +659,8 @@ class CompareBubble {
             this.elements.dialog = $(`<div id="compare-bubble-dialog" title="Series Name">
             <div><span id="compare-bubble-dialog-split" class="explore-dialog-link">Split</span></div>
             <div><span id="compare-bubble-dialog-combine" class="explore-dialog-link">Combine</span></div>
+            <div><span id="compare-bubble-dialog-hide" class="explore-dialog-link">Hide</span></div>
+            <div><span id="compare-bubble-dialog-isolate" class="explore-dialog-link">Isolate Series</span></div>
             </div>`).appendTo(this.elements.container)
             $(this.elements.dialog).dialog({
                 modal: true,
@@ -662,9 +669,18 @@ class CompareBubble {
                 width: 200
             })
         }
+        this.elements.twoPanel = $(`<div class="profile-two-panel"></div>`).appendTo(this.elements.container)
+        this.elements.tree = $(`<div class="compare-tree-panel"><div>`).appendTo(this.elements.twoPanel)
+        this.elements.graph = $(`<div class="compare-bubble-graph"></div>`).appendTo(this.elements.twoPanel)
+        this.elements.reset = $(`<button class="compare">Reset</button>`).appendTo(this.elements.controls).click(() => this.reset())
+        this.elements.showAll = $(`<button class="compare">Show All</button>`).appendTo(this.elements.controls).click(() => {
+            this.tree._traverse({post: function(node) {node.visible = true}}, this.tree)
+            this.fetchAndDraw()
+        })
  
         const series = await new CompareSeries(this.x, this.y, {aggreate: true, level: 'section', id: null}).fetch()
         // this.chart['series'] = [{data: series}]
+        $('.loader').remove()
         if(this.tree === null) {
             this.tree = new BubbleTree(null, {description: {id: null, name:'All', level: {drillDown: "section", urlName: "section"}}}, this.x, this.y)
             await this.tree.fetch()
@@ -680,12 +696,14 @@ class CompareBubble {
                 text: this.y.label
             }
         }
+        this.drawTree(this.elements.tree)
+        this.chart['chart'] = { width: $(this.elements.graph).width() - 15 }
         const chart = Highcharts.merge(this.chart, this.chartDefaults)
         if(this.tree.children.length > 0) {
             chart.legend.enabled = true
         }
-        $(this.elements.container).highcharts(chart)
-        this.chartObj = $(this.elements.container).highcharts()
+        $(this.elements.graph).highcharts(chart)
+        this.chartObj = $(this.elements.graph).highcharts()
     }
 
     _showDialog(point, event) {
@@ -707,16 +725,45 @@ class CompareBubble {
         if(point.options.description.level.drillUp !== null) {
             $('#compare-bubble-dialog-combine').show()
             $('#compare-bubble-dialog-combine').click(async (param) => {
-                await point.series.userOptions.node.rollUp(point.options)
+                await point.series.userOptions.node.rollUp()
                 $(this.elements.dialog).dialog('close')
                 this.fetchAndDraw()
             })
         } else {
             $('#compare-bubble-dialog-combine').hide()
         }
+        $('#compare-bubble-dialog-hide').click(() => {
+            point.series.userOptions.node.visible = !point.series.userOptions.node.visible
+            if(point.series.userOptions.node.visible) {
+                point.series.show()
+            } else {
+                point.series.hide()
+            }
+            $(this.elements.dialog).dialog('close')
+        })
+        $('#compare-bubble-dialog-isolate').click(() => {
+            this.tree._traverse({post: (node) => {
+                if(node !== point.series.userOptions.node) {
+                    node.visible = false
+                } else {
+                    node.visible = true
+                }
+            }}, this.tree)
+            $(this.elements.dialog).dialog('close')
+            this.fetchAndDraw()
+        })
         $(this.elements.dialog).dialog("option", "position", {my: "center center", at: "center center", of: event})
         $(this.elements.dialog).dialog("open")
+    }
+
+    reset() {
+        if(this.tree !== undefined) {
+            this.tree.children.forEach(async function(item, index) {
+                await item.rollUp()
+            })
         }
+        this.fetchAndDraw()
+    }
 
     setMeasures(x,y) {
         this.x = x
@@ -727,6 +774,40 @@ class CompareBubble {
 
     redraw() {
         this.fetchAndDraw()
+    }
+
+    drawTree(div) {
+        //draw a tree structure based on uls into the requested div
+        //get structure
+        const structure = this.tree.itemTree()
+        this._drawTree(structure, div)
+    }
+
+    _drawTree(level, div) {
+        //draw one level of a tree into this div
+        const ul = $(`<ul></ul>`).appendTo(div)
+        //iterate through and add li or recursively call
+        level.forEach((item, index) => {
+            if(item.child === null) {
+                var li = null
+                if(item.point.description.level.urlName !== 'sic') {
+                    li = $(`<li><a href="" onclick="return false;">+ ${item.name}</a></li>`).appendTo(ul)
+                    $(li).click(async () => { 
+                        await item.series.addChild(item.point) 
+                        this.fetchAndDraw()
+                    })
+                } else {
+                    li = $(`<li>${item.name}</li>`).appendTo(ul)
+                }
+            } else {
+                const li = $(`<li><a href="" onclick="return false;">- ${item.name}</a></li>`).appendTo(ul)
+                $(li).click(() => {
+                    item.child.rollUp()
+                    this.fetchAndDraw()
+                })
+                this._drawTree(item.children, ul)
+            }
+        })
     }
 }
 
@@ -739,6 +820,7 @@ class BubbleTree {
         this.parent = parent
         this.point = point
         this.series = []
+        this.visible = true
     }
 
     async fetch() {
@@ -754,10 +836,14 @@ class BubbleTree {
             return !(point.description.id === item.description.id)
         })
         this.children.push(child)
+        if(child.series.length === 1 && child.point.description.level.urlName !== 'group') {
+            await child.addChild(child.series[0])
+        }
     }
 
-    async rollUp(point) {
+    async rollUp() {
         //put this point back into it's parent series
+        const keepParent = this.parent
         this._traverse({post: function(node) {
             //add point back into parent 
             node.parent.series.push(node.point)
@@ -769,6 +855,9 @@ class BubbleTree {
             node.series = null
             node.parent = null
         }}, this)
+        if(keepParent.series.length === 1) {
+            await keepParent.rollUp()
+        }
     }
 
     setSeries(series) {
@@ -783,7 +872,8 @@ class BubbleTree {
                 allSeries.push({
                     data: node.series,
                     name: node.point.description.name,
-                    node: node
+                    node: node,
+                    visible: node.visible
                 })
             }
         }}, this)
@@ -803,6 +893,24 @@ class BubbleTree {
         })
         if(funcs.hasOwnProperty('post'))
             funcs.post(node)
+    }
+
+    itemTree(items) {
+        //create a tree of all items and their descendents, in alphabetical order
+        items = items || []
+        var list = this.series.map((item) => { return {name: item.description.name, series: this, child: null, point: item}})
+        //push any children into this array
+        this.children.forEach((item, index) => { list.push({name: item.point.description.name, series: this, child: item, point: item}) })
+        list.sort((a,b) => a.name.localeCompare(b.name))
+        //loop through, add to items unless a child, in which case call iteratively
+        list.forEach((item, index) => {
+            if(item.child === null) {
+                items.push(item)
+            } else {
+                items.push({name: item.name, series: item.series, child: item.child, children: item.child.itemTree(), point: item})
+            }
+        })
+        return items
     }
 }
 
