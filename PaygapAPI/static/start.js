@@ -5,11 +5,7 @@ var tooltips
 $(document).ready(function() {
     var es6 = true
     try {
-        class Test {
-            constructor() {
-                //blank
-            }
-        }
+        eval("class Foo{}") 
     } catch (exception) {
         es6 = false
     }
@@ -50,7 +46,7 @@ $(document).ready(function() {
             $('#data-container').append(`<iframe src="sources.html"></iframe>`)
         })
         $('#link-history').click(() => new History('#data-container'))
-        const tooltipper = new Tooltipper(1000)
+        var tooltipper = new Tooltipper(1000)
     } else {
         $('#data-container').empty().append(`This site will not work in your browser, a browser which supports EcmaScript 6 is required.
         <br>This is supported in Firefox 45, Chrome 49, and Safari 9, or later versions`)
