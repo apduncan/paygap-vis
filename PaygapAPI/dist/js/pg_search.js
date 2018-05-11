@@ -16,6 +16,13 @@ class CompanySearch {
         const positioner = $(`<div class="search-position"></div>`).appendTo(this.elements.container)        
         const content = $(`<div><div class="section-title margin-bottom">Find a Company</div> \
         <div><input id="co-search" type="text" class="autofill"></div></div>`).appendTo(positioner)
+        const notice = $(`<div class="search-position"><div class="notice card">
+        This is a student visualisation project created in 2018. There are some known issues I will attempt 
+        resolve in time:
+        <ul>
+            <li>In scatter graph, keeping the same pair of variables but switching axes causes axes to be mislabelled</li>
+            <li>Removing outliers on scatter graph performs strangely for median pay gap variable</li>
+        </div></div>`).appendTo(this.elements.container)
         var companyNames = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.obj.whitespace('co_name'),
             queryTokenizer: Bloodhound.tokenizers.whitespace,
