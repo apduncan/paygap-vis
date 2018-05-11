@@ -762,6 +762,7 @@ class CompareBubble {
                 await item.rollUp()
             })
         }
+        this.tree.visible = true
         this.fetchAndDraw()
     }
 
