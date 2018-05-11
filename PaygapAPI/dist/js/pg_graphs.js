@@ -687,7 +687,7 @@ class IndustryMeanPercentage extends EvenHistogram {
                 }],
                 tooltip: {
                     formatter: function() {
-                        return `<strong>${this.y}</strong> companies<br> have a mean gap between <strong>${parseFloat(this.x).toFixed(1)}%</strong> - <strong>${parseFloat(this.x+self._binned.interval).toFixed(1)}</strong>%`
+                        return this.userOptions.type !== 'scatter' ? `<strong>${this.y}</strong> companies<br> have a mean gap between <strong>${parseFloat(this.x).toFixed(1)}%</strong> - <strong>${parseFloat(this.x+self._binned.interval).toFixed(1)}</strong>%` : false
                     }
                 }
             },
