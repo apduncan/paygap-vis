@@ -22,6 +22,7 @@ class CompanySearch {
         <ul>
             <li>In scatter graph, keeping the same pair of variables but switching axes causes axes to be mislabelled</li>
             <li>Removing outliers on scatter graph performs strangely for median pay gap variable</li>
+            <li>Some companies appear in the database twice</li>
         </div></div>`).appendTo(this.elements.container)
         var companyNames = new Bloodhound({
             datumTokenizer: Bloodhound.tokenizers.obj.whitespace('co_name'),
