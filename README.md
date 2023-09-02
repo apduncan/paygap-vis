@@ -1,6 +1,7 @@
 # paygap-vis
 University coursework project to visualize UK 2018 gender pay gap reporting.
 Consists of some basic Python scripts to import data into a PostgreSQL database, and nodejs application running a server providing the visualisations and a REST API for accessing the data.
+An instance is running at https://anthony-duncan.co.uk/paygap/
 
 # Structure
 ## /PaygapAPI/
